@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E5372A">
+  <meta name="description" content="PedeAí Cliente — peça direto da mesa.">
+  <title>PedeAí Cliente</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Figtree:wght@400;500;600;700;800;900&family=Spline+Sans+Mono:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <div class="awning" aria-hidden="true"></div>
+    <header class="topbar">
+      <div class="brand-mark" aria-label="PedeAí"><span>PEDE</span><strong>AÍ</strong></div>
+      <button class="table-chip" data-action="change-table" aria-label="Trocar mesa"><span class="status-dot"></span> Mesa <b id="table-number" data-table-number>07</b></button>
+    </header>
+
+    <main>
+      <section id="welcome-view" class="view welcome-view" aria-labelledby="welcome-title">
+        <div class="stamp">COMANDA DIGITAL <span>•</span> SEM FILA</div>
+        <h1 id="welcome-title">A fome<br><em>manda.</em></h1>
+        <p class="welcome-copy">Você está na mesa <strong data-table-number>07</strong>.<br>Escolha, peça e acompanhe tudo por aqui.</p>
+        <button class="primary-button hero-button" data-action="enter-menu">Abrir cardápio <span>→</span></button>
+        <div class="demo-note"><span class="qr-mini">▦</span><span>QR DEMO ATIVO<br><small>Bar do Beco · atendimento na mesa</small></span></div>
+        <button class="owner-link" data-action="show-owner">Sou do bar <span>ver operação →</span></button>
+      </section>
+
+      <section id="identify-view" class="view identify-view" hidden aria-labelledby="identify-title">
+        <div class="section-kicker">ANTES DO CARDÁPIO</div>
+        <h1 id="identify-title">Como podemos<br><em>te chamar?</em></h1>
+        <p class="identify-copy">Usamos estes dados apenas como cortesia nesta mesa. Isto não cria conta, não é senha e não dá acesso a outras comandas.</p>
+        <form id="identity-form" class="identity-form"><label>Seu nome<input id="guest-name" name="guest_name" type="text" minlength="2" maxlength="80" autocomplete="name" required></label><label>Seu telefone<input id="guest-phone" name="guest_phone" type="tel" inputmode="tel" autocomplete="tel" required></label><p class="privacy-note">Privacidade: o telefone fica restrito ao atendimento desta mesa e não aparece no cardápio público.</p><button class="primary-button full-button" data-action="confirm-identity" type="submit">Continuar para o cardápio <span>→</span></button></form>
+      </section>
+
+      <section id="owner-view" class="view owner-view" hidden aria-labelledby="owner-title">
+        <button class="back-link" data-action="back-welcome">← voltar ao demo do cliente</button>
+        <div class="section-kicker">PAINEL RÁPIDO · BAR DO BECO</div>
+        <h1 id="owner-title">Menos balcão.<br><em>Mais giro.</em></h1>
+        <p class="owner-copy">O cliente pede sozinho. A equipe recebe tudo organizado e foca no que importa: preparar e entregar.</p>
+        <div class="metric-grid"><article><strong>38</strong><span>pedidos digitais</span><small>hoje</small></article><article><strong>08<small>min</small></strong><span>tempo médio</span><small>↓ 21% vs. ontem</small></article><article><strong>04</strong><span>chamadas</span><small>garçom</small></article></div>
+        <div class="owner-card"><div><span class="live-label">● OPERAÇÃO AGORA</span><h3>Fila mais previsível</h3><p>Pedidos chegam com mesa, adicionais e horário — direto para a cozinha.</p></div><div class="mini-bars"><i style="height:42%"></i><i style="height:65%"></i><i style="height:53%"></i><i style="height:84%"></i><i style="height:70%"></i><i style="height:95%"></i></div></div>
+        <div class="owner-proof"><span>✓</span><div><b>Cliente não precisa chamar</b><small>Comanda digital reduz interrupções no salão.</small></div></div><div class="owner-proof"><span>✓</span><div><b>Pedido chega completo</b><small>Adicionais ficam registrados, sem retrabalho.</small></div></div>
+        <div class="operator-heading"><div><div class="section-kicker">CENTRAL DO SALÃO</div><h2>Pedidos para <em>liberar.</em></h2></div><button class="refresh-button" data-action="show-operator">↻ atualizar</button></div>
+        <div id="operator-queue" class="operator-queue"></div>
+        <div class="operator-heading"><div><div class="section-kicker">CHAMADAS DE SERVIÇO</div><h2>Atenção <em>agora.</em></h2></div></div>
+        <div id="service-calls-queue" class="operator-queue"></div>
+        <button class="primary-button full-button" data-action="enter-menu">Experimentar como cliente <span>→</span></button>
+      </section>
+
+      <section id="menu-view" class="view menu-view" hidden aria-labelledby="menu-title">
+        <div class="section-kicker">MESA <span data-table-number>07</span> · BAR DO BECO</div>
+        <div class="menu-heading"><div><h1 id="menu-title">Bora <em>comer.</em></h1><p>Escolha seus favoritos.</p></div><button class="icon-button" data-action="show-cart" aria-label="Abrir comanda">▤<span id="order-badge" hidden>!</span></button></div>
+        <label class="search-box"><span aria-hidden="true">⌕</span><input id="search-input" aria-label="Buscar no cardápio" type="search" placeholder="Buscar no cardápio" autocomplete="off"><kbd>/</kbd></label>
+        <nav id="category-list" class="category-list" aria-label="Categorias"></nav>
+        <div id="menu-list" class="menu-list"></div>
+        <div id="empty-state" class="empty-state" hidden>Nada por aqui. Tente outro termo.</div>
+      </section>
+    </main>
+
+    <footer id="quick-actions" class="quick-actions" hidden>
+      <button data-action="call-waiter"><span>♟</span> Chamar garçom</button>
+      <button data-action="request-close"><span>▣</span> Pedir fechamento</button>
+    </footer>
+
+    <button id="cart-bar" class="cart-bar" data-action="show-cart" hidden><span><b id="cart-count">0</b> itens na comanda</span><strong id="cart-total">R$ 0,00</strong><span>→</span></button>
+  </div>
+
+  <div id="product-modal" class="modal-backdrop" hidden>
+    <section class="modal product-modal" role="dialog" aria-modal="true" aria-labelledby="product-title">
+      <button class="close-button" data-action="close-modal" aria-label="Fechar">×</button>
+      <div id="product-art" class="product-art"></div>
+      <div class="modal-content"><div class="section-kicker" id="product-category"></div><h2 id="product-title"></h2><p id="product-description"></p><div id="extras-list" class="extras-list"></div><div class="modal-footer"><strong id="product-price"></strong><button class="primary-button" data-action="add-product">Adicionar <span>+</span></button></div></div>
+    </section>
+  </div>
+
+  <div id="cart-modal" class="modal-backdrop" hidden>
+    <section class="modal cart-modal" role="dialog" aria-modal="true" aria-labelledby="cart-title"><button class="close-button" data-action="close-modal" aria-label="Fechar">×</button><div class="modal-content"><div class="section-kicker">MESA <span data-table-number>07</span></div><h2 id="cart-title">Sua <em>comanda.</em></h2><div class="people-head"><div><b>Quem está pedindo?</b><small>Separe a conta sem separar a mesa.</small></div><button class="split-button" data-action="add-person">+ pessoa</button></div><div id="people-list" class="people-list" role="tablist" aria-label="Pessoas da mesa"></div><div id="cart-list" class="cart-list"></div><div class="cart-summary"><span>Total da mesa</span><strong id="cart-modal-total">R$ 0,00</strong></div><div class="split-total"><span><b id="active-person-label">Minha conta</b> <small>nesta pessoa</small></span><strong id="active-person-total">R$ 0,00</strong></div><button class="primary-button full-button" data-action="submit-order">Enviar pedido <span>→</span></button><p class="fine-print">A cozinha recebe um único pedido da mesa. Na hora de fechar, cada pessoa vê a sua parte.</p></div></section>
+  </div>
+
+  <div id="order-modal" class="modal-backdrop" hidden>
+    <section class="modal order-modal" role="dialog" aria-modal="true" aria-labelledby="order-title"><button class="close-button" data-action="close-modal" aria-label="Fechar">×</button><div class="modal-content"><div class="order-ticket"><span>PEDIDO <b id="order-number">#—</b></span><span class="order-live">● AO VIVO</span></div><h2 id="order-title">Aguardando <em>garçom.</em></h2><p id="order-subtitle" class="order-subtitle">O pedido só vai para a cozinha depois da aprovação.</p><div id="order-timeline" class="order-timeline"></div><button id="retry-order" class="primary-button full-button" data-action="retry-order" hidden>Reenviar pedido <span>→</span></button><button class="secondary-button full-button" data-action="close-modal">Voltar ao cardápio</button></div></section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
