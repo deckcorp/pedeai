@@ -537,9 +537,9 @@
   // Vitrine local do cliente: configuração de demonstração, sem pareamento nem API de produção.
   // Edite somente estes três valores para apontar a demonstração para outro ambiente local.
   var PEDEAI_CLIENT_DEMO = {
-    clientBase: "http://localhost:4173",
-    apiBase: "http://127.0.0.1:8787",
-    qr: "qr_demo_boteco_07"
+    clientBase: "https://pedeai.deckcorp.com.br/cliente/",
+    apiBase: "",
+    qr: ""
   };
 
   // ---------- logger de erros (silencioso -> backend -> erros_pedeai.log) ----------
@@ -2347,6 +2347,7 @@
     return role === "waiter" && !!t && !!t.byId && t.byId === state.activeStaffId;
   }
   function pedeaiClientDemoUrl() {
+    if (!PEDEAI_CLIENT_DEMO.apiBase) return PEDEAI_CLIENT_DEMO.clientBase;
     return PEDEAI_CLIENT_DEMO.clientBase + "?api=" + encodeURIComponent(PEDEAI_CLIENT_DEMO.apiBase) +
       "&qr=" + encodeURIComponent(PEDEAI_CLIENT_DEMO.qr);
   }
@@ -2371,7 +2372,10 @@
       b.innerHTML = '<p class="muted" style="margin-top:0">Abre a demonstração do cliente para esta mesa. Não usa pareamento nem token de produção.</p>' +
         '<div id="tableqr" style="display:grid;place-items:center;padding:16px;background:#fff;border-radius:12px"></div>' +
         '<p class="muted" style="word-break:break-all;font-size:11px">' + esc(url) + '</p>';
-      new QRCode(document.getElementById("tableqr"), { text: url, width: 220, height: 220 });
+      var qr = qrcode(0, "M");
+      qr.addData(url);
+      qr.make();
+      document.getElementById("tableqr").innerHTML = qr.createImgTag(5, 8);
       var share = document.createElement("button"); share.className = "btn ghost block"; share.style.marginTop = "10px";
       share.innerHTML = ic("share", 18) + " Compartilhar QR";
       share.onclick = function () {
