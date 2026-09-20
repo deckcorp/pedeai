@@ -129,7 +129,7 @@
   .coach-bub .cg-next { background: var(--red); color: #fff; border: none; font-weight: 800; font-size: 14px; padding: 9px 18px; border-radius: 12px; margin-left: auto; }
   .coach-bub .cg-hint { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--red); }
   .receipt-prev { background: #fff; color: #111; border: 1px solid var(--line); border-radius: 10px; padding: 14px; font-family: "Courier New", ui-monospace, monospace; font-size: 12px; line-height: 1.35; white-space: pre; overflow-x: auto; }
-  @media print { body > *:not(iframe) { display: none !important; } }
+  @media print { body > *:not(iframe):not(.qr-print) { display: none !important; } }
   .syncdot { width: 9px; height: 9px; border-radius: 50%; flex: none; margin-left: 2px; background: var(--bone-faint); }
   .syncdot.s-online { background: var(--green); box-shadow: 0 0 0 3px rgba(67,189,107,.22); }
   .syncdot.s-offline { background: var(--yellow); }
@@ -295,6 +295,8 @@
   .cl .cl-unit { font-size: 11.5px; color: var(--paper-faint); font-family: "Spline Sans Mono", monospace; }
   .cl .cl-obs { font-size: 11.5px; color: var(--red-deep); font-weight: 700; margin-top: 2px; }
   .cl .cl-tot { font-family: "Spline Sans Mono", monospace; font-weight: 700; white-space: nowrap; }
+  .cl.cancelled { opacity: .58; }
+  .cl.cancelled .cl-name { text-decoration: line-through; }
   .cl.dropIn { animation: dropIn .4s cubic-bezier(.2,1.5,.4,1) both; }
   .comanda-tot { display: flex; align-items: baseline; justify-content: space-between; padding: 13px 0 3px; }
   .comanda-tot .lbl { font-family: "Anton", sans-serif; text-transform: uppercase; font-size: 17px; }
@@ -521,6 +523,7 @@
 <body>
 <div id="app"></div>
 
+<script src="vendor/qrcode.min.js"></script>
 <script>
 </script>
 
@@ -530,6 +533,14 @@
   var KEY = "pedeai.v2", VERSION = "4.16.1";
   var VERSION_CODE = 78;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Vitrine local do cliente: configuração de demonstração, sem pareamento nem API de produção.
+  // Edite somente estes três valores para apontar a demonstração para outro ambiente local.
+  var PEDEAI_CLIENT_DEMO = {
+    clientBase: "http://localhost:4173",
+    apiBase: "http://127.0.0.1:8787",
+    qr: "qr_demo_boteco_07"
+  };
 
   // ---------- logger de erros (silencioso -> backend -> erros_pedeai.log) ----------
   // Captura window.onerror, promessas rejeitadas, falhas de sync e de armazenamento.
@@ -1392,6 +1403,15 @@
     });
     return out;
   }
+  function syncMergeCancelLog(local, incoming) {
+    var seen = Object.create(null), out = [];
+    (local || []).concat(incoming || []).forEach(function (entry) {
+      if (!entry) return;
+      var key = entry.id || (entry.itemId + ":" + entry.at + ":" + entry.reason);
+      if (!seen[key]) { seen[key] = true; out.push(entry); }
+    });
+    return out.sort(function (a, b) { return (+a.at || 0) - (+b.at || 0); });
+  }
   function syncMergeTables(incoming, tomb) {
     var localById = {};
     state.tables.forEach(function (t) { if (t && t.id) localById[t.id] = t; });
@@ -1408,6 +1428,7 @@
       var localNewer = (loc.updatedAt || 0) > (srv.updatedAt || 0);
       if (!localNewer) TFIELDS.forEach(function (k) { if (srv[k] !== undefined) loc[k] = srv[k]; });
       if (loc.payments || srv.payments) loc.payments = syncMergePayments(loc.payments, srv.payments);
+      if (loc.cancelLog || srv.cancelLog) loc.cancelLog = syncMergeCancelLog(loc.cancelLog, srv.cancelLog);
       var byItem = {};
       (loc.items || []).forEach(function (it) { if (it && it.id) byItem[it.id] = it; });
       var srvIds = {};
@@ -1839,7 +1860,7 @@
     var kp = {}, done = {}, wait = {}, sales = {};
     (state.tables || []).forEach(function (t) {
       (t.items || []).forEach(function (it) {
-        if (!it || !it.id || !it.kitchen) return;
+        if (!it || !it.id || !it.kitchen || it.cancelledAt) return;
         if (it.done) done[it.id] = { table: t.name, byId: t.byId || "" }; else kp[it.id] = t.name;
       });
       if (t.status === "aguardando_pgto") wait[t.id] = t.name;
@@ -2319,10 +2340,80 @@
   function staffById(id) { return state.staff.find(function (s) { return s.id === id; }); }
   function activeStaff() { return staffById(state.activeStaffId) || state.staff[0]; }
   function activeRole() { var s = activeStaff(); return s ? s.role : "admin"; }
+  function tableQrAllowed(t) {
+    var role = activeRole();
+    if (role === "admin") return true;
+    // A única atribuição disponível neste aparelho é quem abriu a mesa (byId).
+    return role === "waiter" && !!t && !!t.byId && t.byId === state.activeStaffId;
+  }
+  function pedeaiClientDemoUrl() {
+    return PEDEAI_CLIENT_DEMO.clientBase + "?api=" + encodeURIComponent(PEDEAI_CLIENT_DEMO.apiBase) +
+      "&qr=" + encodeURIComponent(PEDEAI_CLIENT_DEMO.qr);
+  }
+  function openPedeaiClientDemo() {
+    var url = pedeaiClientDemoUrl();
+    try {
+      if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.Browser) {
+        Capacitor.Plugins.Browser.open({ url: url });
+        return;
+      }
+    } catch (e) {}
+    try {
+      var popup = window.open(url, "_blank", "noopener,noreferrer");
+      if (popup) { popup.opener = null; return; }
+    } catch (e2) {}
+    try { window.location.assign(url); } catch (e3) { toast("Não foi possível abrir a vitrine de demonstração"); }
+  }
+  function tableQrSheet(t) {
+    var url = pedeaiClientDemoUrl();
+    var waiter = activeRole() === "waiter";
+    openSheet("QR · " + t.name, function (b) {
+      b.innerHTML = '<p class="muted" style="margin-top:0">Abre a demonstração do cliente para esta mesa. Não usa pareamento nem token de produção.</p>' +
+        '<div id="tableqr" style="display:grid;place-items:center;padding:16px;background:#fff;border-radius:12px"></div>' +
+        '<p class="muted" style="word-break:break-all;font-size:11px">' + esc(url) + '</p>';
+      new QRCode(document.getElementById("tableqr"), { text: url, width: 220, height: 220 });
+      var share = document.createElement("button"); share.className = "btn ghost block"; share.style.marginTop = "10px";
+      share.innerHTML = ic("share", 18) + " Compartilhar QR";
+      share.onclick = function () {
+        if (navigator.share) { navigator.share({ title: "QR da " + t.name, text: url, url: url }).catch(function () {}); }
+        else shareText(url);
+      };
+      b.appendChild(share);
+      var print = document.createElement("button"); print.className = "btn block"; print.style.marginTop = "10px";
+      print.innerHTML = ic("bill", 18) + " Imprimir QR";
+      print.onclick = function () { if (scrim) scrim.classList.add("qr-print"); window.print(); };
+      b.appendChild(print);
+      if (waiter) b.insertAdjacentHTML("beforeend", '<p class="muted" style="font-size:11px;margin-bottom:0">Você pode ver e compartilhar apenas o QR da mesa atribuída a você.</p>');
+    });
+  }
   function tableById(id) { return state.tables.find(function (t) { return t.id === id; }); }
-  function tableTotal(t) { return t.items.reduce(function (a, it) { return a + it.price * it.qty; }, 0); }
+  function tableTotal(t) { return t.items.reduce(function (a, it) { return a + (it.cancelledAt ? 0 : it.price * it.qty); }, 0); }
   function tablePaid(t) { return (t.payments || []).reduce(function (a, p) { return a + (+p.amount || 0); }, 0); }
-  function tableKitchenPending(t) { return t.items.reduce(function (a, it) { return a + (it.kitchen && !it.done ? it.qty : 0); }, 0); }
+  function tableKitchenPending(t) { return t.items.reduce(function (a, it) { return a + (it.kitchen && !it.done && !it.cancelledAt ? it.qty : 0); }, 0); }
+  function canCancelItem(t, it, role) {
+    if (!it || it.cancelledAt || role === "kitchen") return false;
+    if (role === "waiter") {
+      if ((t.payments || []).length || t.status === "aguardando_pgto") return false;
+      return !!(it.kitchen && !it.done);
+    }
+    return role === "full" || role === "cashier" || role === "admin" || role === "caixa";
+  }
+  function cancelItem(t, it, reason, note, by, notConsumed) {
+    reason = String(reason || "").trim(); note = String(note || "").trim();
+    if (!it || it.cancelledAt) return { ok: false, error: "Item já foi cancelado" };
+    if (!reason) return { ok: false, error: "Informe o motivo do cancelamento" };
+    if (it.done && !notConsumed) return { ok: false, error: "Confirme que o item pronto não foi consumido" };
+    var at = Date.now();
+    it.cancelledAt = at; it.cancelReason = reason; it.cancelNote = note; it.cancelledBy = by || "";
+    t.cancelLog = (t.cancelLog || []).concat([{ id: "cancel-" + it.id + "-" + at, itemId: it.id, at: at, reason: reason, note: note, by: by || "" }]);
+    touchItem(t, it);
+    return { ok: true };
+  }
+  function cancelRole() {
+    if (storeLinked()) return storeRole();
+    return { admin: "admin", caixa: "caixa", garcom: "waiter", cozinha: "kitchen" }[activeRole()] || "admin";
+  }
+  function cancelAuditRole() { return storeLinked() ? storeRole() === "full" : activeRole() === "admin"; }
   function dayTotal() { return state.day.sales.reduce(function (a, x) { return a + x.total; }, 0); }
   function canClose() {
     if (storeLinked()) {
@@ -3071,12 +3162,12 @@
 
     var cmd = document.getElementById("cmd");
     var rows = t.items.map(function (it) {
-      return '<div class="cl' + (dropIds.indexOf(it.id) > -1 ? " dropIn" : "") + '" data-id="' + it.id + '">' +
+      return '<div class="cl' + (dropIds.indexOf(it.id) > -1 ? " dropIn" : "") + (it.cancelledAt ? ' cancelled' : '') + '" data-id="' + it.id + '">' +
         '<button class="cl-main" data-line="' + it.id + '"><div class="cl-name">' + esc(it.name) + (it.kitchen ? ' <span class="k">•cozinha</span>' : '') + '</div>' +
         '<div class="cl-unit">' + money(it.price) + ' un.</div>' +
-        (it.note ? '<div class="cl-obs">✎ ' + esc(it.note) + '</div>' : '') + '</button>' +
-        '<div class="stepper" data-id="' + it.id + '"><button data-d="-1">' + ic("minus", 18) + '</button><span class="q">' + it.qty + '</span><button data-d="1">' + ic("plus", 18) + '</button></div>' +
-        '<div class="cl-tot">' + money(it.price * it.qty) + '</div></div>';
+        (it.note ? '<div class="cl-obs">✎ ' + esc(it.note) + '</div>' : '') + (it.cancelledAt ? '<div class="cl-obs">Cancelado: ' + esc(it.cancelReason || '') + '</div>' : '') + '</button>' +
+        (it.cancelledAt ? '<div class="q">—</div>' : '<div class="stepper" data-id="' + it.id + '"><button data-d="-1">' + ic("minus", 18) + '</button><span class="q">' + it.qty + '</span><button data-d="1">' + ic("plus", 18) + '</button></div>') +
+        '<div class="cl-tot">' + (it.cancelledAt ? '—' : money(it.price * it.qty)) + '</div></div>';
     }).join("");
     cmd.innerHTML = '<div class="comanda">' +
       '<div class="comanda-head"><span class="ttl">Comanda</span><span class="no">' + (num ? "Nº " + num : t.name) + '</span></div>' +
@@ -3090,7 +3181,7 @@
       st.querySelectorAll("button").forEach(function (b) { b.onclick = function () { chgQty(t, it, +b.dataset.d); }; });
     });
     cmd.querySelectorAll(".cl-main").forEach(function (bt) {
-      bt.onclick = function () { var it = t.items.find(function (x) { return x.id === bt.dataset.line; }); if (it) lineOptions(t, it); };
+      bt.onclick = function () { var it = t.items.find(function (x) { return x.id === bt.dataset.line; }); if (it && !it.cancelledAt) lineOptions(t, it); };
     });
     var cur = tableTotal(t), prev = lastTotals[t.id];
     if (!RM && prev != null && prev !== cur) countUp(document.getElementById("ctot"), prev, cur);
@@ -3105,6 +3196,9 @@
       var rr = document.createElement("button"); rr.className = "btn ghost block"; rr.style.marginTop = "10px";
       rr.innerHTML = ic("repeat", 18) + " Repetir rodada (bebidas)";
       rr.onclick = function () { repeatRound(t); }; v.appendChild(rr);
+    }
+    if (cancelAuditRole() && (t.cancelLog || []).length) {
+      v.insertAdjacentHTML("beforeend", '<div class="comanda" style="margin-top:12px"><div class="comanda-head"><span class="ttl">Cancelamentos</span></div>' + t.cancelLog.map(function (e) { return '<div class="recap-row"><span>' + esc((t.items.find(function (it) { return it.id === e.itemId; }) || {}).name || "Item") + ' · ' + esc(e.reason || "") + (e.note ? ' — ' + esc(e.note) : '') + '</span><span class="muted">' + sinceLabel(e.at) + '</span></div>'; }).join("") + '</div>');
     }
 
     if (t.status === "aguardando_pgto" && !canClose()) {
@@ -3127,6 +3221,18 @@
     var sh = document.createElement("button"); sh.className = "btn ghost block"; sh.style.marginTop = "10px";
     sh.innerHTML = ic("share", 18) + " Enviar comanda"; sh.disabled = !t.items.length;
     sh.onclick = function () { shareText(receiptText(tableAsOrder(t))); }; v.appendChild(sh);
+
+    if (tableQrAllowed(t)) {
+      var qr = document.createElement("button"); qr.className = "btn ghost block"; qr.style.marginTop = "10px";
+      qr.innerHTML = ic("share", 18) + (activeRole() === "admin" ? " Gerar QR da mesa" : " Ver e compartilhar QR da mesa");
+      qr.onclick = function () { tableQrSheet(t); }; v.appendChild(qr);
+    }
+
+    if (activeRole() === "admin") {
+      var demo = document.createElement("button"); demo.className = "btn ghost block"; demo.style.marginTop = "10px";
+      demo.innerHTML = ic("share", 18) + " Abrir vitrine do cliente (demonstração)";
+      demo.onclick = openPedeaiClientDemo; v.appendChild(demo);
+    }
 
     var del = document.createElement("button"); del.className = "btn danger block"; del.style.marginTop = "10px";
     del.innerHTML = ic("trash", 18) + " Cancelar mesa";
@@ -3181,9 +3287,23 @@
         touchItem(t, it); persist(); closeSheet(); renderView();
       };
       f.appendChild(ok);
-      var rm = document.createElement("button"); rm.className = "btn danger block"; rm.style.marginTop = "8px"; rm.innerHTML = ic("trash", 18) + " Tirar da comanda";
-      rm.onclick = function () { removeItem(t, it); persist(); closeSheet(); renderView(); };
-      f.appendChild(rm);
+      if (canCancelItem(t, it, cancelRole())) {
+        var rm = document.createElement("button"); rm.className = "btn danger block"; rm.style.marginTop = "8px"; rm.innerHTML = ic("trash", 18) + " Cancelar item";
+        rm.onclick = function () { closeSheet(); cancelItemSheet(t, it); };
+        f.appendChild(rm);
+      }
+    });
+  }
+  function cancelItemSheet(t, it) {
+    openSheet("Cancelar " + it.name, function (b) {
+      b.innerHTML = '<label class="field"><span>Motivo obrigatório</span><select id="cr"><option value="">Selecione</option><option>Pedido errado</option><option>Cliente desistiu</option><option>Indisponível</option><option>Outro</option></select></label><label class="field"><span>Observação</span><input id="cn" maxlength="160" placeholder="Detalhe, se necessário"></label>' + (it.done ? '<label class="divide"><input id="cnot" type="checkbox"> <span>Confirmo que este item pronto não foi consumido.</span></label>' : '');
+    }, function (f) {
+      var ok = document.createElement("button"); ok.className = "btn danger block lg slab"; ok.textContent = "Confirmar cancelamento";
+      ok.onclick = function () {
+        var r = cancelItem(t, it, scrim.querySelector("#cr").value, scrim.querySelector("#cn").value, state.activeStaffId || cancelRole(), !it.done || !!scrim.querySelector("#cnot").checked);
+        if (!r.ok) { toast(r.error); return; }
+        persist(); closeSheet(); renderView(); toast("Item cancelado e registrado");
+      }; f.appendChild(ok);
     });
   }
   // Aumentar a quantidade de um item de COZINHA JÁ MARCADO COMO PRONTO não pode
@@ -3293,7 +3413,8 @@
       }
       function paint() {
         var c = calc(), h = "";
-        t.items.forEach(function (it) { h += '<div class="recap-row"><span>' + it.qty + '× ' + esc(it.name) + '</span><span class="mono">' + money(it.price * it.qty) + '</span></div>'; });
+        t.items.filter(function (it) { return !it.cancelledAt; }).forEach(function (it) { h += '<div class="recap-row"><span>' + it.qty + '× ' + esc(it.name) + '</span><span class="mono">' + money(it.price * it.qty) + '</span></div>'; });
+        if (cancelAuditRole() && (t.cancelLog || []).length) h += '<div class="miniline">' + t.cancelLog.length + ' cancelamento(s) registrado(s), fora do total</div>';
         h += '<div class="recap-row"><span>Subtotal</span><span class="mono">' + money(c.sub) + '</span></div>';
         if (c.d) h += '<div class="recap-row disc"><span>Desconto ' + (disc.type === "pct" ? disc.val + "%" : "") + '</span><span class="mono">- ' + money(c.d) + '</span></div>';
         if (c.svc) h += '<div class="recap-row"><span>Taxa de serviço ' + pct + '%</span><span class="mono">' + money(c.svc) + '</span></div>';
@@ -3365,7 +3486,7 @@
           openTableId = t.id; renderApp(); toast("Pagamento parcial registrado · saldo " + money(balance - amount));
           return;
         }
-        var sale = { id: uid(), table: t.name, items: t.items.map(function (it) { return { name: it.name, price: it.price, qty: it.qty, note: it.note || "" }; }),
+        var sale = { id: uid(), table: t.name, items: t.items.filter(function (it) { return !it.cancelledAt; }).map(function (it) { return { name: it.name, price: it.price, qty: it.qty, note: it.note || "" }; }), cancelLog: (t.cancelLog || []).slice(),
           subtotal: sub, discount: d, discountLabel: d ? (disc.type === "pct" ? disc.val + "%" : money(disc.val)) : "", service: svc, otherService: extra ? { name: otherName.trim(), value: extra } : null, previousPaid: paidBefore, paidNow: amount, payments: (t.payments || []).concat([payment]), total: total, people: people, pay: pay,
           byId: t.byId, closedById: state.activeStaffId, closedAt: Date.now() };
         state.day.sales.push(sale);
@@ -3391,21 +3512,20 @@
   // ---- cozinha ----
   function renderCozinha(v) {
     v.innerHTML = '<h2 class="screen-title">Cozinha</h2>';
-    var list = state.tables.filter(function (t) { return t.items.some(function (it) { return it.kitchen && !it.done; }) || t.items.some(function (it) { return it.kitchen; }); });
-    list = state.tables.filter(function (t) { return t.items.some(function (it) { return it.kitchen; }); }).sort(function (a, c) { return a.openedAt - c.openedAt; });
+    var list = state.tables.filter(function (t) { return t.items.some(function (it) { return it.kitchen && !it.cancelledAt; }); }).sort(function (a, c) { return a.openedAt - c.openedAt; });
     var pend = 0, seenAt = state.ui.kitchenSeenAt || 0, freshCount = 0;
-    list.forEach(function (t) { t.items.forEach(function (it) { if (it.kitchen && !it.done) { pend += it.qty; if (it.addedAt > seenAt) freshCount++; } }); });
+    list.forEach(function (t) { t.items.forEach(function (it) { if (it.kitchen && !it.done && !it.cancelledAt) { pend += it.qty; if (it.addedAt > seenAt) freshCount++; } }); });
     if (!list.length) { v.insertAdjacentHTML("beforeend", '<div class="empty"><div class="em-mark">' + ic("pan", 92) + '</div><div class="em-big">Cozinha vazia</div><p>Nenhum pedido agora.</p></div>'); state.ui.kitchenSeenAt = Date.now(); persist(); return; }
     v.insertAdjacentHTML("beforeend", '<div class="screen-sub">' + pend + ' item(ns) a preparar' + (freshCount ? ' · ' + freshCount + ' novo(s)' : '') + '</div>');
     if (freshCount) haptic(12);
     var rail = document.createElement("div"); rail.className = "krail";
     list.forEach(function (t) {
-      var pendItems = t.items.filter(function (it) { return it.kitchen && !it.done; });
+      var pendItems = t.items.filter(function (it) { return it.kitchen && !it.done && !it.cancelledAt; });
       var oldest = pendItems.length ? Math.min.apply(null, pendItems.map(function (it) { return it.addedAt; })) : Date.now();
       var mins = minsSince(oldest);
       var card = document.createElement("div"); card.className = "kt" + (pendItems.length ? (mins >= 20 ? " late" : mins >= 10 ? " warn" : "") : "");
       card.innerHTML = '<div class="kt-h"><span class="ttl">' + esc(t.name) + '</span><span class="since' + (mins >= 10 && pendItems.length ? " warn" : "") + '">' + (pendItems.length ? sinceLabel(oldest) : "ok") + '</span></div>';
-      t.items.filter(function (it) { return it.kitchen; }).forEach(function (it) {
+      t.items.filter(function (it) { return it.kitchen && !it.cancelledAt; }).forEach(function (it) {
         var row = document.createElement("div"); row.className = "ki" + (it.done ? " done" : "");
         row.innerHTML = '<span class="kq">' + it.qty + '×</span><span class="kx">' + esc(it.name) +
           (!it.done && it.addedAt > seenAt ? '<span class="knew">novo</span>' : '') +
