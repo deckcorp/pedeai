@@ -262,8 +262,10 @@
 
   /* tables */
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
-  .tcard { text-align: left; border-radius: 18px; background: var(--ink-2); border: 2px solid var(--line); padding: 0; overflow: hidden; min-height: 132px; display: flex; flex-direction: column; box-shadow: var(--card-shadow); transition: transform .12s; }
-  .tcard:active { transform: scale(.97); }
+  .tcard { text-align: left; border-radius: 18px; background: var(--ink-2); border: 2px solid var(--line); padding: 0; overflow: hidden; min-height: 132px; display: flex; flex-direction: column; box-shadow: var(--card-shadow); transition: transform .12s, border-color .12s, opacity .12s; touch-action: manipulation; cursor: grab; }
+  .tcard:active { transform: scale(.97); cursor: grabbing; }
+  .tcard.dragging { opacity: .45; }
+  .tcard.drag-over { border-color: var(--yellow); transform: translateY(-3px); }
   .tcard .bar { height: 7px; background: var(--red); }
   .tcard.wait .bar { background: var(--yellow); }
   .tcard .body { padding: 13px 14px; display: flex; flex-direction: column; gap: 5px; flex: 1; }
@@ -530,8 +532,8 @@
 <script>
 (function () {
   "use strict";
-  var KEY = "pedeai.v2", VERSION = "4.17.0";
-  var VERSION_CODE = 80;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
+  var KEY = "pedeai.v2", VERSION = "4.17.1";
+  var VERSION_CODE = 81;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Vitrine DEMO e QR de produção são fluxos diferentes.
@@ -1171,7 +1173,9 @@
     if (!state.settings.printer) state.settings.printer = { mode: "off", width: 58, showOnClose: false, autoBill: false, header: "" };
     if (!state.settings.theme || state.settings.theme === "auto") state.settings.theme = "dark";
     if (!state.ui) state.ui = { kitchenSeenAt: 0 };
-    (state.tables || []).forEach(function (t) {
+    (state.tables || []).forEach(function (t, index) {
+      if (t.position == null || !Number.isFinite(Number(t.position))) t.position = index;
+      t.position = Number(t.position);
       if (t.note == null) t.note = "";
       if (t.people == null) t.people = 1;
       (t.items || []).forEach(function (it) { if (it.note == null) it.note = ""; if (!it.addedAt) it.addedAt = t.openedAt || Date.now(); });
@@ -3332,13 +3336,49 @@
     });
     v.appendChild(box);
   }
+  function orderedTables() {
+    return state.tables.slice().sort(function (a, b) {
+      var ap = Number.isFinite(Number(a.position)) ? Number(a.position) : a.openedAt || 0;
+      var bp = Number.isFinite(Number(b.position)) ? Number(b.position) : b.openedAt || 0;
+      return ap - bp || (a.openedAt || 0) - (b.openedAt || 0);
+    });
+  }
+  function reorderTables(fromId, toId) {
+    if (!fromId || !toId || fromId === toId) return false;
+    var list = orderedTables(), from = list.findIndex(function (t) { return t.id === fromId; }), to = list.findIndex(function (t) { return t.id === toId; });
+    if (from < 0 || to < 0) return false;
+    var moved = list.splice(from, 1)[0]; list.splice(to, 0, moved);
+    list.forEach(function (t, index) { t.position = index; touchTable(t); });
+    state.tables = list; persist(); haptic(5); renderApp(); toast("Ordem das mesas salva");
+    return true;
+  }
+  function wireTableDrag(card, table) {
+    card.draggable = true; card.dataset.tableId = table.id; card.title = "Arraste para reorganizar";
+    card.addEventListener("dragstart", function (event) { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", table.id); card.classList.add("dragging"); });
+    card.addEventListener("dragend", function () { card.classList.remove("dragging"); });
+    card.addEventListener("dragover", function (event) { event.preventDefault(); event.dataTransfer.dropEffect = "move"; card.classList.add("drag-over"); });
+    card.addEventListener("dragleave", function () { card.classList.remove("drag-over"); });
+    card.addEventListener("drop", function (event) { event.preventDefault(); card.classList.remove("drag-over"); reorderTables(event.dataTransfer.getData("text/plain"), table.id); });
+    var pointerId = null, moved = false;
+    card.addEventListener("pointerdown", function (event) { pointerId = event.pointerId; moved = false; card.setPointerCapture(pointerId); });
+    card.addEventListener("pointermove", function (event) {
+      if (pointerId !== event.pointerId) return;
+      if (Math.abs(event.movementX) + Math.abs(event.movementY) < 4) return;
+      moved = true;
+      var target = document.elementFromPoint(event.clientX, event.clientY);
+      var targetCard = target && target.closest ? target.closest(".tcard") : null;
+      if (targetCard && targetCard.dataset.tableId !== table.id) { reorderTables(table.id, targetCard.dataset.tableId); pointerId = null; }
+    });
+    card.addEventListener("pointerup", function () { pointerId = null; });
+    card.addEventListener("click", function (event) { if (moved) { event.preventDefault(); event.stopPropagation(); } });
+  }
   function renderMesas(v) {
     v.innerHTML = '<h2 class="screen-title">Mesas abertas</h2>';
     if (!state.tables.length) {
       v.insertAdjacentHTML("beforeend", '<div class="empty"><div class="em-mark">' + mark(96) + '</div><div class="em-big">Sem mesa aberta</div><p>Bora abrir a primeira?</p></div>');
     } else {
       var grid = document.createElement("div"); grid.className = "grid";
-      state.tables.slice().sort(function (a, c) { return a.openedAt - c.openedAt; }).forEach(function (t) {
+      orderedTables().forEach(function (t) {
         var by = staffById(t.byId), wait = t.status === "aguardando_pgto", kp = tableKitchenPending(t);
         var c = document.createElement("button"); c.className = "tcard" + (wait ? " wait" : "");
         var flags = "";
@@ -3351,6 +3391,7 @@
           '<div class="tmeta">' + (by ? esc(by.name.split(" ")[0]) + " · " : "") + sinceLabel(t.openedAt) + (t.people > 1 ? " · " + t.people + " pes." : "") + '</div>' +
           '<div class="ttotal">' + money(tableTotal(t)) + '</div></div>';
         c.onclick = function () { openTableId = t.id; haptic(5); renderApp(); demoTick(); };
+        wireTableDrag(c, t);
         grid.appendChild(c);
       });
       v.appendChild(grid);
@@ -3373,7 +3414,7 @@
       var ok = document.createElement("button"); ok.className = "btn red block lg slab"; ok.textContent = "Abrir";
       ok.onclick = function () {
         var nm = (scrim.querySelector("#tn").value || sug).trim() || sug;
-        var t = { id: uid(), name: nm, openedAt: Date.now(), updatedAt: Date.now(), byId: state.activeStaffId, status: "aberta", note: "", people: ppl, items: [] };
+        var t = { id: uid(), name: nm, position: state.tables.length, openedAt: Date.now(), updatedAt: Date.now(), byId: state.activeStaffId, status: "aberta", note: "", people: ppl, items: [] };
         state.tables.push(t); persist(); haptic(8); closeSheet(); openTableId = t.id; renderApp(); demoTick();
       };
       f.appendChild(ok);
