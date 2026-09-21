@@ -532,8 +532,8 @@
 <script>
 (function () {
   "use strict";
-  var KEY = "pedeai.v2", VERSION = "4.17.1";
-  var VERSION_CODE = 81;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
+  var KEY = "pedeai.v2", VERSION = "4.17.2";
+  var VERSION_CODE = 82;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Vitrine DEMO e QR de produção são fluxos diferentes.
@@ -2544,7 +2544,7 @@
         var token = tableQrTokenFor(tableQrTokens(res), t);
         if (token || !tableQrCanCreate()) return token;
         return tableQrRequest("/v1/operator/qr-tokens", "POST", jwt, { table_id: tableIds[0] }).then(function (created) {
-          return (created && (created.qr_token || created.token || created.item || created.data)) || created;
+          return (created && (created.qr || created.qr_token || created.token || created.item || created.data)) || created;
         });
       });
     }).then(function (token) {
