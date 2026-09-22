@@ -532,8 +532,8 @@
 <script>
 (function () {
   "use strict";
-  var KEY = "pedeai.v2", VERSION = "4.17.3";
-  var VERSION_CODE = 83;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
+  var KEY = "pedeai.v2", VERSION = "4.17.4";
+  var VERSION_CODE = 84;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Vitrine DEMO e QR de produção são fluxos diferentes.
@@ -1387,7 +1387,7 @@
   var publicMenuLastSignature = "", publicMenuInFlight = null;
   // Fila do cliente: é uma projeção remota, deliberadamente fora de state.
   // Não entra na comanda local, no backup nem no localStorage.
-  var operatorQueue = { orders: [], calls: [], loading: false, error: "", lastUpdatedAt: 0, unauthorized: false }, operatorPollInFlight = null, operatorPollTimer = null;
+  var operatorQueue = { orders: [], calls: [], loading: false, error: "", lastUpdatedAt: 0, unauthorized: false }, operatorPollInFlight = null, operatorPollTimer = null, operatorQueueRenderKey = "";
   var operatorPollFailures = 0, operatorPollRetryAt = 0;
   function operatorRole(role) {
     return ({ admin: "admin", full: "full", cashier: "cashier", caixa: "cashier", kitchen: "kitchen", cozinha: "kitchen", waiter: "waiter", "garçom": "waiter", garcom: "waiter" })[String(role || "").toLowerCase()] || "";
@@ -1406,7 +1406,7 @@
   function normalizeOperatorTableId(value) { var text = String(value == null ? "" : value).trim().toLowerCase().replace(/\s+/g, " ").replace(/-/g, " "); var number = text.match(/^mesa\s*0*(\d+)$/) || text.match(/^0*(\d+)$/); return number ? String(Number(number[1])) : text; }
   function operatorLocalTableForOrder(tables, order) { var target = normalizeOperatorTableId(order && order.table_id), matches = (tables || []).filter(function (table) { return [table && table.table_id, table && table.tableId, table && table.id, table && table.name].some(function (value) { return normalizeOperatorTableId(value) === target; }); }); return target && matches.length >= 1 ? matches[0] : null; }
   function operatorOrderProjectionKey(order) { return [order && order.id, order && order.service_session_id, normalizeOperatorTableId(order && order.table_id)].join(":"); }
-  function projectOperatorOrders(tables, orders, storeId) { var projected = 0, unlinked = []; (orders || []).forEach(function (order) { if (!order || !order.id || String(order.store_id || "") !== String(storeId || "")) return; var key = operatorOrderProjectionKey(order), table = operatorLocalTableForOrder(tables, order); if (!table) { unlinked.push(order); return; } if (order.service_session_id && !table.serviceSessionId) { table.serviceSessionId = order.service_session_id; } table.items = Array.isArray(table.items) ? table.items : []; if (table.items.some(function (item) { return item && item.remoteOrderKey === key; })) return; (order.items || []).forEach(function (item) { table.items.push({ id: "remote:" + key + ":" + String(item.menu_item_id || item.name || table.items.length), name: String(item.name || "Item"), qty: Number(item.quantity || item.qty || 1), price: Number(item.unit_price || item.price || 0), kitchen: false, remoteOrderKey: key, remoteOrderId: order.id, remoteStatus: order.status, addedAt: Date.now() }); }); projected++; }); return { projected: projected, unlinked: unlinked }; }
+  function projectOperatorOrders(tables, orders, storeId, menu) { var projected = 0, unlinked = []; (orders || []).forEach(function (order) { if (!order || !order.id || String(order.store_id || "") !== String(storeId || "")) return; var key = operatorOrderProjectionKey(order), table = operatorLocalTableForOrder(tables, order); if (!table) { unlinked.push(order); return; } if (order.service_session_id && !table.serviceSessionId) { table.serviceSessionId = order.service_session_id; } table.items = Array.isArray(table.items) ? table.items : []; (order.items || []).forEach(function (item) { var menuItem = (menu || []).find(function (m) { return String(m && m.id) === String(item && item.menu_item_id); }); var isKitchen = !!(menuItem && menuItem.kitchen) && ["confirmed", "preparing", "ready"].indexOf(String(order.status || "").toLowerCase()) >= 0; var remote = table.items.find(function (existing) { return existing && existing.remoteOrderKey === key && String(existing.remoteOrderId) === String(order.id) && String(existing.remoteMenuItemId || "") === String(item.menu_item_id || ""); }); if (!remote) { remote = { id: "remote:" + key + ":" + String(item.menu_item_id || item.name || table.items.length), name: String(item.name || "Item"), qty: Number(item.quantity || item.qty || 1), price: Number(item.unit_price || item.price || 0), addedAt: Date.now(), remoteOrderKey: key, remoteOrderId: order.id, remoteMenuItemId: item.menu_item_id || "" }; table.items.push(remote); projected++; } remote.name = String(item.name || remote.name || "Item"); remote.qty = Number(item.quantity || item.qty || 1); remote.price = Number(item.unit_price || item.price || 0); remote.kitchen = isKitchen; remote.done = ["ready", "completed"].indexOf(String(order.status || "").toLowerCase()) >= 0; remote.remoteStatus = String(order.status || "").toLowerCase(); }); }); return { projected: projected, unlinked: unlinked }; }
   function operatorOrderTableLabel(order, tables) { var t = order && operatorLocalTableForOrder(tables || [], order); if (t) return t.name || "Mesa não informada"; var v = order && (order.table || order.table_name || order.tableName || order.table_number); if (v) return String(v); return "Mesa não informada"; }
   // ---- closeRemoteSession: fecha sessão remota ao pagar integral (fire-and-forget) ----
   var SESSION_CLOSE_PENDING_MAX = 50, SESSION_CLOSE_TTL_MS = 72 * 60 * 60 * 1000;
@@ -1472,11 +1472,14 @@
         operatorRequest("/v1/operator/orders/active", "GET", jwt),
         operatorRequest("/v1/operator/service-calls", "GET", jwt)
       ]).then(function (res) {
-        var orders = operatorOrders(res[0]), projection = projectOperatorOrders(state.tables, orders, state.store && state.store.id);
-        operatorQueue = { orders: orders, calls: operatorCalls(res[1]), loading: false, error: projection.unlinked.length ? "Mesa não vinculada: confira o QR e a mesa local." : "", lastUpdatedAt: Date.now(), unauthorized: false };
+        var orders = operatorOrders(res[0]), calls = operatorCalls(res[1]), nextRenderKey = orders.concat(calls).map(function (entry) { return [entry && entry.id, entry && entry.status, entry && entry.updated_at, entry && entry.created_at].join(":"); }).join("|");
+        var queueChanged = nextRenderKey !== operatorQueueRenderKey;
+        operatorQueueRenderKey = nextRenderKey;
+        var projection = projectOperatorOrders(state.tables, orders, state.store && state.store.id, state.menu);
+        operatorQueue = { orders: orders, calls: calls, loading: false, error: projection.unlinked.length ? "Mesa não vinculada: confira o QR e a mesa local." : "", lastUpdatedAt: Date.now(), unauthorized: false };
         if (projection.projected) persist(false);
         operatorPollFailures = 0; operatorPollRetryAt = 0;
-        if (flow === "app" && !scrim) renderView();
+        if (flow === "app" && !scrim && (queueChanged || projection.projected)) renderView(false);
         return true;
       });
     }).catch(function (error) {
@@ -3336,9 +3339,9 @@
     renderCoach();
     var de = document.getElementById("demoexit"); if (de) de.onclick = exitDemo;
   }
-  function renderView() {
+  function renderView(animate) {
     var v = document.getElementById("view"); if (!v) return;
-    v.classList.remove("view-in"); void v.offsetWidth; v.classList.add("view-in");
+    if (animate !== false) { v.classList.remove("view-in"); void v.offsetWidth; v.classList.add("view-in"); }
     if (current === "mesas") { openTableId ? renderTable(v) : renderMesas(v); }
     else if (current === "cozinha") renderCozinha(v);
     else if (current === "dia") renderDia(v);
@@ -3854,8 +3857,17 @@
         row.innerHTML = '<span class="kq">' + it.qty + '×</span><span class="kx">' + esc(it.name) +
           (!it.done && it.addedAt > seenAt ? '<span class="knew">novo</span>' : '') +
           (it.note ? '<span class="kobs">✎ ' + esc(it.note) + '</span>' : '') + '</span>' +
-          '<button class="kbtn">' + (it.done ? ic("check", 15) + " pronto" : "marcar") + '</button>';
-        row.querySelector(".kbtn").onclick = function () { it.done = !it.done; touchItem(t, it); persist(); haptic(10); if (it.done) beep("ready"); renderView(); };
+          '<button class="kbtn">' + (it.remoteOrderId ? ({ confirmed: "enviar", preparing: "marcar pronto", ready: "concluído" })[it.remoteStatus] || "abrir" : (it.done ? ic("check", 15) + " pronto" : "marcar")) + '</button>';
+        row.querySelector(".kbtn").onclick = function () {
+          if (it.remoteOrderId) {
+            var nextRemote = ({ confirmed: "preparing", preparing: "ready", ready: "completed" })[it.remoteStatus];
+            if (!nextRemote) return;
+            row.querySelector(".kbtn").disabled = true;
+            operatorAction("status", it.remoteOrderId, { status: nextRemote }).finally(function () { row.querySelector(".kbtn").disabled = false; });
+            return;
+          }
+          it.done = !it.done; touchItem(t, it); persist(); haptic(10); if (it.done) beep("ready"); renderView();
+        };
         card.appendChild(row);
       });
       if (pendItems.length > 1) {

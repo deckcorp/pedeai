@@ -1,1 +1,1 @@
-{"version":"4.17.3","min":"4.17.3","versionCode":83,"minVersionCode":83,"apkUrl":"https://pedeai.deckcorp.com.br/pedeai-4.17.3.apk","notice":"Correção do vínculo do QR com a mesa e fila de pedidos legível."}
+{"version":"4.17.4","min":"4.17.4","versionCode":84,"minVersionCode":84,"apkUrl":"https://pedeai.deckcorp.com.br/pedeai-4.17.4.apk","notice":"Correção crítica: pedidos aprovados entram na cozinha sem piscar a tela."}
