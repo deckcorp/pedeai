@@ -532,8 +532,8 @@
 <script>
 (function () {
   "use strict";
-  var KEY = "pedeai.v2", VERSION = "4.17.4";
-  var VERSION_CODE = 84;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
+  var KEY = "pedeai.v2", VERSION = "4.17.5";
+  var VERSION_CODE = 85;   // espelha android/app/build.gradle — decide se o forced-update precisa de APK novo
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Vitrine DEMO e QR de produção são fluxos diferentes.
@@ -1408,6 +1408,8 @@
   function operatorOrderProjectionKey(order) { return [order && order.id, order && order.service_session_id, normalizeOperatorTableId(order && order.table_id)].join(":"); }
   function projectOperatorOrders(tables, orders, storeId, menu) { var projected = 0, unlinked = []; (orders || []).forEach(function (order) { if (!order || !order.id || String(order.store_id || "") !== String(storeId || "")) return; var key = operatorOrderProjectionKey(order), table = operatorLocalTableForOrder(tables, order); if (!table) { unlinked.push(order); return; } if (order.service_session_id && !table.serviceSessionId) { table.serviceSessionId = order.service_session_id; } table.items = Array.isArray(table.items) ? table.items : []; (order.items || []).forEach(function (item) { var menuItem = (menu || []).find(function (m) { return String(m && m.id) === String(item && item.menu_item_id); }); var isKitchen = !!(menuItem && menuItem.kitchen) && ["confirmed", "preparing", "ready"].indexOf(String(order.status || "").toLowerCase()) >= 0; var remote = table.items.find(function (existing) { return existing && existing.remoteOrderKey === key && String(existing.remoteOrderId) === String(order.id) && String(existing.remoteMenuItemId || "") === String(item.menu_item_id || ""); }); if (!remote) { remote = { id: "remote:" + key + ":" + String(item.menu_item_id || item.name || table.items.length), name: String(item.name || "Item"), qty: Number(item.quantity || item.qty || 1), price: Number(item.unit_price || item.price || 0), addedAt: Date.now(), remoteOrderKey: key, remoteOrderId: order.id, remoteMenuItemId: item.menu_item_id || "" }; table.items.push(remote); projected++; } remote.name = String(item.name || remote.name || "Item"); remote.qty = Number(item.quantity || item.qty || 1); remote.price = Number(item.unit_price || item.price || 0); remote.kitchen = isKitchen; remote.done = ["ready", "completed"].indexOf(String(order.status || "").toLowerCase()) >= 0; remote.remoteStatus = String(order.status || "").toLowerCase(); }); }); return { projected: projected, unlinked: unlinked }; }
   function operatorOrderTableLabel(order, tables) { var t = order && operatorLocalTableForOrder(tables || [], order); if (t) return t.name || "Mesa não informada"; var v = order && (order.table || order.table_name || order.tableName || order.table_number); if (v) return String(v); return "Mesa não informada"; }
+  function operatorCallTableLabel(call, tables) { var t = operatorLocalTableForOrder(tables || [], { table_id: call && (call.table_id || call.table || call.table_name || call.table_number) }); if (t) return t.name || "Mesa não informada"; var v = String(call && (call.table || call.table_name || call.table_number) || "").trim(); var number = v.match(/^mesa[-\s]*0*(\d+)$/i) || v.match(/^0*(\d+)$/); return number ? "Mesa " + Number(number[1]) : "Mesa não informada"; }
+  function operatorCallTypeLabel(type) { return ({ waiter: "Garçom chamado", bill: "Fechamento solicitado", help: "Ajuda solicitada" })[String(type || "").toLowerCase()] || "Chamada de atendimento"; }
   // ---- closeRemoteSession: fecha sessão remota ao pagar integral (fire-and-forget) ----
   var SESSION_CLOSE_PENDING_MAX = 50, SESSION_CLOSE_TTL_MS = 72 * 60 * 60 * 1000;
   function closeRemoteSession(t) {
@@ -3381,8 +3383,8 @@
       box.appendChild(row);
     });
     calls.forEach(function (call) {
-      var id = call && call.id, mesa = call && (call.table || call.table_name || call.tableName || call.table_number || call.table_id) || "Mesa não informada";
-      var txt = call && (call.message || call.reason || call.type || "Chamada de atendimento");
+      var id = call && call.id, mesa = operatorCallTableLabel(call, state.tables);
+      var txt = call && (call.message || call.reason) || operatorCallTypeLabel(call && call.type);
       var row = document.createElement("div"); row.className = "recap-row";
       row.innerHTML = '<span><b>Chamada · ' + esc(String(mesa)) + '</b><br><span class="muted">' + esc(String(txt)) + '</span></span>';
       if (operatorCanResolveCall(role)) { var done = document.createElement("button"); done.className = "btn ghost right"; done.textContent = "Resolver"; done.onclick = function () { done.disabled = true; operatorAction("resolve", id).finally(function () { done.disabled = false; }); }; row.appendChild(done); }
@@ -3839,6 +3841,15 @@
   // ---- cozinha ----
   function renderCozinha(v) {
     v.innerHTML = '<h2 class="screen-title">Cozinha</h2>';
+    var finishedCount = state.tables.reduce(function (total, t) { return total + t.items.filter(function (it) { return it.done && (!it.remoteOrderId || it.remoteStatus === "completed"); }).length; }, 0);
+    if (finishedCount) {
+      var clearFinished = document.createElement("button"); clearFinished.className = "btn ghost block"; clearFinished.style.cssText = "margin:8px 0 14px;color:var(--bone);border-color:var(--line)"; clearFinished.textContent = "Limpar finalizados (" + finishedCount + ")";
+      clearFinished.onclick = function () {
+        state.tables.forEach(function (t) { t.items = t.items.filter(function (it) { return !(it.done && (!it.remoteOrderId || it.remoteStatus === "completed")); }); touchTable(t); });
+        persist(); renderView(false); toast("Pedidos finalizados removidos da cozinha");
+      };
+      v.appendChild(clearFinished);
+    }
     var list = state.tables.filter(function (t) { return t.items.some(function (it) { return it.kitchen && !it.cancelledAt; }); }).sort(function (a, c) { return a.openedAt - c.openedAt; });
     var pend = 0, seenAt = state.ui.kitchenSeenAt || 0, freshCount = 0;
     list.forEach(function (t) { t.items.forEach(function (it) { if (it.kitchen && !it.done && !it.cancelledAt) { pend += it.qty; if (it.addedAt > seenAt) freshCount++; } }); });
