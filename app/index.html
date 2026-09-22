@@ -1386,7 +1386,7 @@
   var publicMenuLastSignature = "", publicMenuInFlight = null;
   // Fila do cliente: é uma projeção remota, deliberadamente fora de state.
   // Não entra na comanda local, no backup nem no localStorage.
-  var operatorQueue = { orders: [], calls: [] }, operatorPollInFlight = null, operatorPollTimer = null;
+  var operatorQueue = { orders: [], calls: [], loading: false, error: "", lastUpdatedAt: 0, unauthorized: false }, operatorPollInFlight = null, operatorPollTimer = null;
   var operatorPollFailures = 0, operatorPollRetryAt = 0;
   function operatorRole(role) {
     return ({ admin: "admin", full: "full", cashier: "cashier", caixa: "cashier", kitchen: "kitchen", cozinha: "kitchen", waiter: "waiter", "garçom": "waiter", garcom: "waiter" })[String(role || "").toLowerCase()] || "";
@@ -1402,6 +1402,10 @@
   function operatorCanResolveCall(role) { return operatorCanRead(role); }
   function operatorOrders(res) { return Array.isArray(res && res.orders) ? res.orders : []; }
   function operatorCalls(res) { return Array.isArray(res && res.calls) ? res.calls : []; }
+  function normalizeOperatorTableId(value) { var text = String(value == null ? "" : value).trim().toLowerCase().replace(/\s+/g, " "); var number = text.match(/^mesa\s*0*(\d+)$/) || text.match(/^0*(\d+)$/); return number ? String(Number(number[1])) : text; }
+  function operatorLocalTableForOrder(tables, order) { var target = normalizeOperatorTableId(order && order.table_id), matches = (tables || []).filter(function (table) { return [table && table.table_id, table && table.tableId, table && table.name].some(function (value) { return normalizeOperatorTableId(value) === target; }); }); return target && matches.length === 1 ? matches[0] : null; }
+  function operatorOrderProjectionKey(order) { return [order && order.id, order && order.service_session_id, normalizeOperatorTableId(order && order.table_id)].join(":"); }
+  function projectOperatorOrders(tables, orders, storeId) { var projected = 0, unlinked = []; (orders || []).forEach(function (order) { if (!order || !order.id || String(order.store_id || "") !== String(storeId || "")) return; var key = operatorOrderProjectionKey(order), table = operatorLocalTableForOrder(tables, order); if (!table) { unlinked.push(order); return; } table.items = Array.isArray(table.items) ? table.items : []; if (table.items.some(function (item) { return item && item.remoteOrderKey === key; })) return; (order.items || []).forEach(function (item) { table.items.push({ id: "remote:" + key + ":" + String(item.menu_item_id || item.name || table.items.length), name: String(item.name || "Item"), qty: Number(item.quantity || item.qty || 1), price: Number(item.unit_price || item.price || 0), kitchen: false, remoteOrderKey: key, remoteOrderId: order.id, remoteStatus: order.status, addedAt: Date.now() }); }); projected++; }); return { projected: projected, unlinked: unlinked }; }
   function operatorRequest(path, method, jwt, body) {
     var headers = { "Authorization": "Bearer " + jwt };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -1423,19 +1427,24 @@
     var role = operatorRole(storeRole());
     if (!syncActive() || !operatorCanRead(role) || navigator.onLine === false || Date.now() < operatorPollRetryAt) return Promise.resolve(false);
     if (operatorPollInFlight) return operatorPollInFlight;
+    operatorQueue.loading = !operatorQueue.lastUpdatedAt;
     operatorPollInFlight = storeEnsureJwt().then(function (jwt) {
       if (!jwt) return false;
       return Promise.all([
         operatorRequest("/v1/operator/orders/active", "GET", jwt),
         operatorRequest("/v1/operator/service-calls", "GET", jwt)
       ]).then(function (res) {
-        operatorQueue = { orders: operatorOrders(res[0]), calls: operatorCalls(res[1]) };
+        var orders = operatorOrders(res[0]), projection = projectOperatorOrders(state.tables, orders, state.store && state.store.id);
+        operatorQueue = { orders: orders, calls: operatorCalls(res[1]), loading: false, error: projection.unlinked.length ? "Mesa não vinculada: confira o QR e a mesa local." : "", lastUpdatedAt: Date.now(), unauthorized: false };
+        if (projection.projected) persist(false);
         operatorPollFailures = 0; operatorPollRetryAt = 0;
         if (flow === "app" && !scrim) renderView();
         return true;
       });
-    }).catch(function () {
+    }).catch(function (error) {
       // A fila é complementar: offline e instabilidade nunca interrompem a comanda.
+      if (error && error.status === 401) { operatorQueue.loading = false; operatorQueue.unauthorized = true; operatorQueue.error = "Acesso à fila expirou. Entre novamente."; operatorPollStop(); return false; }
+      operatorQueue.loading = false; operatorQueue.error = "Fila indisponível. Última atualização preservada.";
       operatorPollFailures++;
       operatorPollRetryAt = Date.now() + networkBackoff(operatorPollFailures);
       return false;
@@ -1774,7 +1783,7 @@
     syncStop(); syncFailures = 0; syncRetryAt = 0; syncRetryStatus = 0;
     syncLastKick = 0; syncBackgrounded = false; syncPeers = []; syncLastToast = "";
     syncManualPromise = null; syncManualLockUntil = 0; syncClockOffset = 0;
-    operatorQueue = { orders: [], calls: [] }; operatorPollFailures = 0; operatorPollRetryAt = 0;
+    operatorQueue = { orders: [], calls: [], loading: false, error: "", lastUpdatedAt: 0, unauthorized: false }; operatorPollFailures = 0; operatorPollRetryAt = 0;
   }
   function syncLeavePresence(snapshot) {
     // Beacon "sai da presença" — só faz sentido com um JWT válido em mãos.
@@ -3304,21 +3313,24 @@
     return Array.isArray(items) ? items.map(function (it) { return String((it.qty || it.quantity || 1)) + "× " + String(it.name || it.title || it.product_name || "Item"); }).join(" · ") : "";
   }
   function operatorStatusLabel(status) {
-    return ({ received: "Aguardando aprovação", pending: "Aguardando aprovação", new: "Aguardando aprovação", confirmed: "Aprovado", preparing: "Na cozinha", ready: "Pronto" })[status] || "Em atendimento";
+    return ({ received: "Aguardando aprovação", pending: "Aguardando aprovação", new: "Aguardando aprovação", confirmed: "Aprovado", preparing: "Na cozinha", ready: "Pronto", completed: "Entregue", rejected: "Recusado" })[status] || "Em atendimento";
   }
+  function operatorOrderElapsed(order) { var at = Date.parse(order && (order.created_at || order.createdAt)); if (!isFinite(at)) return "agora"; var minutes = Math.max(0, Math.floor((Date.now() - at) / 60000)); return minutes < 1 ? "agora" : minutes + " min"; }
   function renderOperatorQueue(v) {
     var role = operatorRole(storeRole());
     if (!storeLinked() || !operatorCanRead(role)) return;
     var orders = operatorQueue.orders || [], calls = operatorQueue.calls || [];
-    if (!orders.length && !calls.length) return;
+    if (!orders.length && !calls.length && !operatorQueue.loading && !operatorQueue.error) { var empty = document.createElement("div"); empty.className = "comanda"; empty.style.marginTop = "16px"; empty.innerHTML = '<div class="comanda-head"><span class="ttl">Fila online</span></div><div class="muted" style="padding:12px">Fila vazia</div>'; v.appendChild(empty); return; }
     var box = document.createElement("div"); box.className = "comanda"; box.style.marginTop = "16px";
-    box.innerHTML = '<div class="comanda-head"><span class="ttl">Fila online</span><span class="no">' + (orders.length + calls.length) + ' aberto(s)</span></div>';
+    var queueMeta = operatorQueue.lastUpdatedAt ? 'Última atualização ' + new Date(operatorQueue.lastUpdatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+    box.innerHTML = '<div class="comanda-head"><span class="ttl">Fila online</span><span class="no">' + (orders.length + calls.length) + ' aberto(s)</span></div>' + (operatorQueue.loading ? '<div class="muted" style="padding:12px">Carregando fila online…</div>' : '') + (operatorQueue.error ? '<div class="muted" style="padding:12px">' + esc(operatorQueue.error) + (queueMeta ? ' · ' + esc(queueMeta) : '') + '</div>' : '');
     orders.forEach(function (order) {
       var id = order && order.id, status = String(order && order.status || "pending").toLowerCase();
       var mesa = order && (order.table || order.table_name || order.tableName || order.table_number || order.table_id) || "Mesa não informada";
       var cliente = order && (order.customer || order.customer_name || order.customerName || order.guest_name || order.name) || "Cliente não informado";
       var row = document.createElement("div"); row.className = "recap-row"; row.style.display = "block";
-      row.innerHTML = '<b>' + esc(String(mesa)) + '</b> · ' + esc(String(cliente)) + '<br><span class="muted">' + esc(operatorItemText(order) || "Sem itens") + ' · ' + esc(operatorStatusLabel(status)) + '</span>';
+      var total = isFinite(Number(order && order.total)) ? money(Number(order.total)) : "Total não informado";
+      row.innerHTML = '<b>' + esc(String(mesa)) + '</b> · ' + esc(String(cliente)) + '<br><span class="muted">' + esc(operatorItemText(order) || "Sem itens") + ' · ' + esc(total) + ' · ' + esc(operatorOrderElapsed(order)) + ' · ' + esc(operatorStatusLabel(status)) + '</span>';
       function action(label, kind, body) { var b = document.createElement("button"); b.className = "btn ghost"; b.style.cssText = "margin:7px 6px 0 0;min-height:32px;font-size:11px"; b.textContent = label; b.onclick = function () { if (kind === "reject") { var reason = prompt("Motivo da rejeição:"); if (!reason || !reason.trim()) { toast("A rejeição exige um motivo"); return; } body = { reason: reason.trim() }; } b.disabled = true; operatorAction(kind, id, body).finally(function () { b.disabled = false; }); }; row.appendChild(b); }
       if (status === "received" || status === "pending" || status === "new") { if (operatorCanApprove(role)) { action("Aprovar", "approve"); action("Rejeitar", "reject"); } }
       else if ((status === "confirmed" || status === "confirmada") && operatorCanStatus(role, "preparing")) action("Iniciar preparo", "status", { status: "preparing" });
@@ -3327,7 +3339,7 @@
       box.appendChild(row);
     });
     calls.forEach(function (call) {
-      var id = call && call.id, mesa = call && (call.table || call.table_name || call.tableName || call.table_number) || "Mesa não informada";
+      var id = call && call.id, mesa = call && (call.table || call.table_name || call.tableName || call.table_number || call.table_id) || "Mesa não informada";
       var txt = call && (call.message || call.reason || call.type || "Chamada de atendimento");
       var row = document.createElement("div"); row.className = "recap-row";
       row.innerHTML = '<span><b>Chamada · ' + esc(String(mesa)) + '</b><br><span class="muted">' + esc(String(txt)) + '</span></span>';
