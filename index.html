@@ -54,9 +54,8 @@
   }
   /* ---------- tokens do aplicativo (iguais aos do app real; usados só nas telas de exemplo) ---------- */
   .app {
-    --a-ink:#121010; --a-ink2:#1c1815; --a-ink3:#29231e; --a-line:#3c332c; --a-bone:#f3ede2; --a-dim:#a89e8d;
-    --a-red:#e5372a; --a-red-deep:#c22a1e; --a-ppr:#f5ecdc; --a-ppr2:#efe4cf; --a-ppr-line:#d8c9ab; --a-ppr-ink:#241c11; --a-ppr-faint:#8a7a5c;
-    --a-yellow:#f5c518; --a-green:#43bd6b;
+    --a-ink:#0e0f11; --a-ink2:#17191c; --a-ink3:#1f2226; --a-line:#2c3036; --a-bone:#f5f2ea; --a-dim:#a9a69d; --a-faint:#8a877f;
+    --a-red:#e5372a; --a-red-deep:#c22a1e; --a-amber:#ffb224; --a-green:#43bd6b;
     --a-title:"Anton","Arial Narrow",Impact,sans-serif; --a-mono:"Spline Sans Mono",ui-monospace,"SF Mono",Menlo,monospace;
     font-family:var(--f-text); font-size:13px; line-height:1.3; color:var(--a-bone); text-align:left;
   }
@@ -145,89 +144,100 @@
   .chip-ic { width:44px; height:44px; border-radius:13px; display:grid; place-items:center; background:var(--amber-soft); border:1px solid var(--amber-line); color:var(--amber); flex:none; }
 
   /* =====================================================================
-     TELAS DO APLICATIVO — reproduzem a aparência real do PedeAí
+     TELAS DO APLICATIVO — reproduzem a interface real do PedeAí
      ===================================================================== */
-  .a-t { font-family:var(--a-title); font-weight:400; text-transform:uppercase; letter-spacing:.01em; line-height:1; }
-  .a-m { font-family:var(--a-mono); font-weight:600; letter-spacing:-.02em; }
+  .a-t { font-family:var(--a-title); font-weight:400; text-transform:uppercase; letter-spacing:.015em; line-height:1; }
+  .a-m { font-family:var(--a-mono); font-weight:600; letter-spacing:-.03em; }
+  .app small { display:block; }
+  .app i { font-style:normal; }
   .phone { width:270px; padding:8px; border-radius:42px; background:#060606; border:1px solid rgba(255,255,255,.17);
     box-shadow:0 50px 90px -36px rgba(0,0,0,.95), 0 0 0 1px #000, inset 0 0 0 1px rgba(255,255,255,.04); }
   .a-screen { position:relative; border-radius:34px; overflow:hidden; background:var(--a-ink); display:flex; flex-direction:column; }
   .a-screen::before { content:""; position:absolute; top:9px; left:50%; width:66px; height:18px; margin-left:-33px; border-radius:12px; background:#060606; z-index:3; }
-  .a-top { display:flex; align-items:center; gap:.6em; padding:2.9em 1em .7em; }
-  .a-top svg { width:1.9em; height:1.9em; }
-  .a-top .a-t { font-size:1.15em; margin-right:auto; }
-  .a-on { display:inline-flex; align-items:center; gap:.4em; font-size:.74em; padding:.3em .6em; border:1px solid var(--a-line); border-radius:.6em; color:var(--a-bone); }
-  .a-on::before { content:""; width:.6em; height:.6em; border-radius:50%; background:var(--a-green); }
-  .a-awn { height:4px; background:repeating-linear-gradient(90deg,var(--a-red) 0 10px,var(--a-bone) 10px 20px); }
-  .a-body { padding:1em 1em 1.1em; display:flex; flex-direction:column; gap:.75em; flex:1; }
-  .a-h { font-size:1.75em; display:flex; align-items:center; gap:.45em; }
-  .a-back { width:1.5em; height:1.5em; border:1px solid var(--a-line); border-radius:.4em; display:grid; place-items:center; background:var(--a-ink2); font-size:.62em; }
-  .a-back .ic { width:1em; height:1em; stroke-width:2.4; }
-  .a-sub { color:var(--a-dim); font-size:.86em; margin-top:-.45em; }
-  /* comanda de papel */
-  .a-paper { position:relative; background:var(--a-ppr); color:var(--a-ppr-ink); padding:.55em .9em .7em; margin-block:6px; filter:drop-shadow(0 6px 14px rgba(0,0,0,.35)); }
-  .a-paper::before, .a-paper::after { content:""; position:absolute; left:0; right:0; height:6px; background-size:10px 6px; background-repeat:repeat-x; }
-  .a-paper::before { top:-6px; background-image:linear-gradient(45deg,var(--a-ppr) 33%,transparent 34%),linear-gradient(-45deg,var(--a-ppr) 33%,transparent 34%); background-position:0 100%; }
-  .a-paper::after { bottom:-6px; background-image:linear-gradient(135deg,var(--a-ppr) 33%,transparent 34%),linear-gradient(-135deg,var(--a-ppr) 33%,transparent 34%); }
-  .a-ph { display:flex; align-items:baseline; justify-content:space-between; padding:.35em 0 .55em; border-bottom:1px dashed var(--a-ppr-line); }
-  .a-ph .a-t { font-size:1.2em; }
-  .a-ph .a-m { font-size:.82em; color:var(--a-ppr-faint); }
-  .a-it { display:flex; align-items:center; gap:.5em; padding:.6em 0; border-bottom:1px dashed var(--a-ppr-line); }
-  .a-it > span:first-child { flex:1; min-width:0; font-weight:700; font-size:.95em; }
-  .a-it small { display:block; font-family:var(--a-mono); font-weight:600; font-size:.74em; color:var(--a-ppr-faint); }
-  .a-it em { font-style:normal; color:var(--a-red-deep); font-size:.84em; }
-  .a-step { display:inline-flex; align-items:center; gap:.5em; padding:.28em .5em; border:1px solid var(--a-ppr-line); border-radius:.55em; background:var(--a-ppr2); font-family:var(--a-mono); font-weight:600; font-size:.86em; }
-  .a-step i { font-style:normal; color:var(--a-ppr-faint); }
-  .a-it .a-m { font-size:.9em; }
-  .a-tot { display:flex; align-items:baseline; justify-content:space-between; padding-top:.7em; }
-  .a-tot .a-t:first-child { font-size:1em; }
-  .a-tot .a-t:last-child { font-size:1.75em; }
-  /* botões */
-  .a-btn { display:flex; align-items:center; justify-content:center; gap:.45em; min-height:3.1em; border-radius:.9em; border:2px solid var(--a-line); background:var(--a-ink2); font-family:var(--a-title); text-transform:uppercase; letter-spacing:.03em; font-size:1.05em; }
-  .a-btn.red { background:var(--a-red); border-color:var(--a-red-deep); color:#fff5f2; }
-  .a-btn .ic { width:1.05em; height:1.05em; stroke-width:2.6; }
-  /* barra de abas */
-  .a-tabs { display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--a-line); background:var(--a-ink2); padding:.55em .3em .8em; margin-top:auto; }
-  .a-tabs li { display:flex; flex-direction:column; align-items:center; gap:.3em; font-size:.62em; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#6d6355; }
-  .a-tabs span { width:3.6em; height:2.5em; border-radius:.9em; display:grid; place-items:center; transition:background-color .3s; }
-  .a-tabs .ic { width:1.75em; height:1.75em; }
-  .a-tabs li.on { color:var(--a-bone); }
-  .a-tabs li.on span { background:var(--a-red); color:#fff5f2; }
+  .a-top { display:flex; align-items:center; gap:.6em; padding:2.9em .85em .7em; border-bottom:1px solid var(--a-line); }
+  .a-top > svg { width:2.1em; height:2.1em; flex:none; }
+  .a-chip { width:2.5em; height:2.5em; flex:none; border:1px solid var(--a-line); border-radius:.8em; display:grid; place-items:center; background:var(--a-ink2); }
+  .a-chip .ic { width:1.25em; height:1.25em; stroke-width:2.4; }
+  .a-id { flex:1; min-width:0; line-height:1.15; }
+  .a-id b { display:block; font-weight:800; font-size:1.06em; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .a-id small { display:flex; align-items:center; gap:.4em; font-size:.76em; font-weight:600; color:var(--a-dim); }
+  .a-id small::before { content:""; width:.6em; height:.6em; border-radius:50%; background:var(--a-green); }
+  .a-av { width:2.3em; height:2.3em; flex:none; border-radius:50%; background:var(--a-red); color:#fff5f2; display:grid; place-items:center; font-size:.82em; font-weight:800; }
+  .a-body { padding:.9em .8em 0; display:flex; flex-direction:column; gap:.7em; flex:1; }
+  .a-kick { font-size:.8em; font-weight:600; color:var(--a-dim); margin-bottom:-.45em; }
+  .a-h { font-size:1.95em; }
+  .a-metrics, .a-grid2, .a-pm { display:grid; gap:.45em; }
+  .a-metrics, .a-pm { grid-template-columns:repeat(3,1fr); } .a-grid2 { grid-template-columns:1fr 1fr; }
+  .a-metric { background:var(--a-ink2); border:1px solid var(--a-line); border-radius:.95em; padding:.6em .6em .65em; min-width:0; }
+  .a-metric small { font-size:.58em; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--a-faint); white-space:nowrap; }
+  .a-metric b { display:block; margin-top:.3em; font-family:var(--a-mono); font-weight:600; font-size:.98em; letter-spacing:-.04em; white-space:nowrap; }
+  .a-metric.hot { border-color:rgba(255,178,36,.5); } .a-metric.hot b { color:var(--a-amber); }
+  .a-st { display:inline-flex; align-items:center; gap:.4em; flex:none; padding:.22em .6em; border-radius:999px; font-size:.64em; font-weight:700; background:rgba(67,189,107,.16); color:var(--a-green); white-space:nowrap; }
+  .a-st::before { content:""; width:.5em; height:.5em; border-radius:50%; background:currentColor; }
+  .a-st.warn { background:rgba(255,178,36,.18); color:var(--a-amber); }
   /* cartão de mesa */
-  .a-mesa { border-radius:1.1em; background:var(--a-ink2); border:2px solid var(--a-line); overflow:hidden; }
-  .a-mesa::before { content:""; display:block; height:6px; background:var(--a-red); }
-  .a-mesa > div { padding:.75em .9em .85em; }
-  .a-mesa .a-t { font-size:1.4em; }
-  .a-mesa small { display:block; color:var(--a-dim); font-size:.78em; margin:.35em 0 .5em; }
-  .a-mesa .a-m { font-size:1.2em; }
+  .a-mesa { background:var(--a-ink2); border:1px solid var(--a-line); border-radius:1.15em; padding:.85em .85em .8em; }
+  .a-mesa-top { display:flex; align-items:center; justify-content:space-between; gap:.4em; }
+  .a-mesa-top b { font-weight:800; font-size:1.08em; white-space:nowrap; }
+  .a-mesa > .a-m { display:block; margin-top:.7em; font-size:1.4em; }
+  .a-mesa > small { margin-top:.45em; font-size:.76em; font-weight:600; color:var(--a-dim); }
   .a-mesa.new { border-color:var(--a-red); }
-  /* comanda da cozinha */
-  .a-tk { position:relative; background:var(--a-ppr); color:var(--a-ppr-ink); border-radius:0 0 5px 5px; border-left:4px solid transparent; padding:.3em .9em .8em; margin-top:6px; filter:drop-shadow(0 6px 14px rgba(0,0,0,.4)); }
-  .a-tk::before { content:""; position:absolute; top:-6px; left:-4px; right:0; height:6px; background-size:10px 6px; background-repeat:repeat-x; background-position:0 100%;
-    background-image:linear-gradient(45deg,var(--a-ppr) 33%,transparent 34%),linear-gradient(-45deg,var(--a-ppr) 33%,transparent 34%); }
-  .a-tk.warn { border-left-color:var(--a-yellow); }
-  .a-tk-h { display:flex; align-items:baseline; justify-content:space-between; padding:.45em 0 .5em; border-bottom:2px dashed var(--a-ppr-line); }
-  .a-tk-h .a-t { font-size:1.2em; }
-  .a-tk-h .a-m { font-size:.8em; color:var(--a-ppr-faint); }
-  .a-tk.warn .a-tk-h .a-m { color:var(--a-red-deep); }
-  .a-ki { display:flex; align-items:center; gap:.5em; padding-top:.65em; font-weight:700; font-size:.95em; }
-  .a-ki .a-m { color:var(--a-red-deep); }
-  .a-ki > span:nth-child(2) { flex:1; min-width:0; }
-  .a-ki small { display:block; font-size:.8em; color:var(--a-red-deep); }
-  .a-new { display:inline-block; vertical-align:middle; margin-left:.3em; background:var(--a-red); color:#fff5f2; font-size:.62em; font-weight:700; letter-spacing:.05em; padding:.2em .45em; border-radius:.35em; }
-  .a-mark { border:1.5px solid var(--a-ppr-line); background:var(--a-ppr2); border-radius:.6em; padding:.45em .65em; font-size:.74em; font-weight:700; letter-spacing:.04em; }
+  .a-pill { align-self:center; margin:auto 0 .1em; display:inline-flex; align-items:center; gap:.5em; padding:.85em 1.5em; border-radius:999px; background:var(--a-red); color:#fff5f2; font-family:var(--a-title); text-transform:uppercase; letter-spacing:.04em; font-size:1.02em; box-shadow:0 12px 22px -12px rgba(229,55,42,.9); }
+  .a-pill .ic { width:1.1em; height:1.1em; stroke-width:2.6; }
+  /* comanda */
+  .a-oh { display:flex; align-items:center; gap:.65em; }
+  .a-oh small { margin-top:.3em; font-size:.76em; font-weight:600; color:var(--a-dim); }
+  .a-list { background:var(--a-ink2); border:1px solid var(--a-line); border-radius:1.15em; padding:.1em .75em; }
+  .a-it { display:flex; align-items:center; gap:.65em; padding:.75em 0; border-bottom:1px solid var(--a-line); }
+  .a-it:last-child { border-bottom:0; }
+  .a-q { width:2.7em; height:2.7em; flex:none; border-radius:.8em; display:grid; place-items:center; background:var(--a-ink3); font-size:.88em; }
+  .a-it > div:nth-child(2) { flex:1; min-width:0; }
+  .a-it b { font-weight:700; font-size:.98em; line-height:1.2; }
+  .a-it small { margin-top:.15em; font-family:var(--a-mono); font-weight:600; font-size:.72em; color:var(--a-faint); }
+  .a-k { display:inline-block; margin-left:.2em; padding:.08em .55em; border-radius:999px; font-size:.64em; font-weight:700; background:rgba(255,178,36,.18); color:var(--a-amber); vertical-align:middle; }
+  .a-r { flex:none; text-align:right; }
+  .a-r .a-m { display:block; font-size:.92em; }
+  .a-step { display:inline-flex; align-items:center; gap:.6em; margin-top:.35em; padding:.22em .55em; border:1px solid var(--a-line); border-radius:.6em; background:var(--a-ink); font-family:var(--a-mono); font-weight:600; font-size:.8em; }
+  .a-step i { color:var(--a-dim); }
+  .a-add { display:flex; align-items:center; justify-content:center; gap:.5em; padding:.8em; border:1px dashed var(--a-line); border-radius:1em; font-weight:700; }
+  .a-add .ic { width:1.1em; height:1.1em; stroke-width:2.4; }
+  .a-pay { margin:.7em .7em 0; display:flex; align-items:center; gap:.6em; padding:.5em .5em .5em .9em; background:var(--a-ink2); border:1px solid var(--a-line); border-radius:1.25em; }
+  .a-pay > div { flex:1; }
+  .a-pay small { font-size:.58em; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--a-faint); }
+  .a-pay b { display:block; font-family:var(--a-mono); font-weight:600; font-size:1.3em; letter-spacing:-.04em; white-space:nowrap; }
+  .a-btn { display:flex; align-items:center; justify-content:center; min-height:3em; padding:0 1em; border-radius:.9em; background:var(--a-red); color:#fff5f2; font-family:var(--a-title); text-transform:uppercase; letter-spacing:.04em; font-size:.98em; white-space:nowrap; box-shadow:inset 0 1px 0 rgba(255,255,255,.2); }
+  /* navegação */
+  .a-nav { display:flex; gap:.25em; margin:.7em .7em .8em; padding:.35em; border:1px solid var(--a-line); border-radius:1.6em; background:var(--a-ink2); }
+  .a-nav li { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.2em; padding:.5em 0; border-radius:2em; font-size:.56em; font-weight:700; letter-spacing:.03em; text-transform:uppercase; color:var(--a-faint); transition:background-color .3s, color .3s; }
+  .a-nav .ic { width:2em; height:2em; }
+  .a-nav li.on { flex:1.7; flex-direction:row; gap:.5em; font-size:.68em; background:var(--a-red); color:#fff5f2; }
+  .a-nav li.on .ic { width:1.6em; height:1.6em; }
+  /* cozinha */
+  .a-tk { background:var(--a-ink2); border:1px solid var(--a-line); border-radius:1.15em; overflow:hidden; box-shadow:0 14px 30px -18px rgba(0,0,0,.9); }
+  .a-tk.warn { border-color:rgba(255,178,36,.5); }
+  .a-tk-h { display:flex; align-items:center; justify-content:space-between; gap:.5em; padding:.7em .85em; border-bottom:1px solid var(--a-line); background:rgba(255,255,255,.03); }
+  .a-tk-h b { font-weight:800; font-size:1.12em; }
+  .a-ki { display:flex; align-items:center; gap:.65em; padding:.7em .85em; font-weight:700; font-size:.98em; }
+  .a-ki > span:nth-child(2) { flex:1; min-width:0; line-height:1.25; }
+  .a-ki small { font-size:.8em; font-weight:600; color:var(--a-amber); }
+  .a-new { display:inline-block; vertical-align:middle; margin-left:.35em; background:var(--a-red); color:#fff5f2; font-size:.6em; font-weight:700; letter-spacing:.05em; padding:.15em .55em; border-radius:999px; }
+  .a-mark { flex:none; border:1px solid var(--a-line); background:var(--a-ink3); border-radius:.75em; padding:.7em .8em; font-size:.74em; font-weight:700; white-space:nowrap; }
   /* fechar conta */
-  .a-sheet { background:var(--a-ink2); border:1px solid var(--a-line); border-radius:1.4em 1.4em 0 0; padding:.6em 1em 1em; display:flex; flex-direction:column; gap:.1em; flex:1; margin-top:.6em; }
+  .a-sheet { background:var(--a-ink2); border:1px solid var(--a-line); border-radius:1.5em 1.5em 0 0; padding:.6em .85em .9em; display:flex; flex-direction:column; flex:1; margin-top:.7em; }
   .a-sheet::before { content:""; align-self:center; width:2.6em; height:4px; border-radius:2px; background:var(--a-line); margin-bottom:.7em; }
   .a-sheet > .a-t { font-size:1.2em; padding-bottom:.7em; border-bottom:1px solid var(--a-line); }
-  .a-ln { display:flex; justify-content:space-between; gap:1em; padding:.6em 0; border-bottom:1px dashed var(--a-line); font-size:.92em; }
-  .a-ln .a-m { font-size:.95em; }
-  .a-ln.big { align-items:baseline; border-bottom-style:solid; }
-  .a-ln.big .a-t { font-size:1.8em; }
-  .a-lbl { font-size:.68em; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--a-dim); margin:1em 0 .5em; }
-  .a-seg { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; padding:3px; border:2px solid var(--a-line); border-radius:.9em; margin-bottom:.9em; }
-  .a-seg span { text-align:center; padding:.6em 0; border-radius:.6em; font-weight:700; font-size:.88em; color:var(--a-dim); }
-  .a-seg span.on { background:var(--a-red); color:#fff5f2; }
+  .a-hero { text-align:center; padding:.9em 0 .8em; }
+  .a-hero small { font-size:.62em; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--a-faint); }
+  .a-hero b { display:block; margin-top:.15em; font-family:var(--a-mono); font-weight:600; font-size:2.5em; letter-spacing:-.05em; line-height:1.05; }
+  .a-hero span { display:block; margin-top:.3em; font-size:.8em; font-weight:600; color:var(--a-dim); }
+  .a-rows { border:1px solid var(--a-line); border-radius:1em; padding:.05em .8em; background:var(--a-ink); }
+  .a-ln { display:flex; justify-content:space-between; gap:1em; padding:.55em 0; border-bottom:1px dashed var(--a-line); font-size:.88em; font-weight:600; }
+  .a-ln:last-child { border-bottom:0; }
+  .a-lbl { font-size:.62em; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--a-faint); margin:.95em 0 .5em; }
+  .a-pm span { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.35em; min-height:4.3em; border:1px solid var(--a-line); border-radius:1em; background:var(--a-ink); color:var(--a-dim); font-size:.86em; font-weight:700; }
+  .a-pm .ic { width:1.5em; height:1.5em; }
+  .a-pm span.on { border-color:var(--a-red); background:rgba(229,55,42,.16); color:var(--a-bone); box-shadow:0 0 0 1px var(--a-red) inset; }
+  .a-sheet .a-btn { margin-top:auto; min-height:3.3em; }
 
   /* ---------- hero ---------- */
   .hero { position:relative; overflow:hidden; padding:clamp(36px,5.5vw,76px) 0 clamp(44px,6vw,84px); }
@@ -249,7 +259,8 @@
   .stage .phone { position:absolute; left:0; right:0; top:0; margin-inline:auto; }
   .stage .fl { position:absolute; z-index:2; }
   .fl-tk { left:max(calc(50% - 301px), -70px); top:150px; width:186px; rotate:-4deg; }
-  .fl-mesa { left:min(calc(50% + 115px), calc(100% - 148px)); top:330px; width:164px; rotate:3deg; box-shadow:var(--sh); }
+  .fl-mesa { left:min(calc(50% + 115px), calc(100% - 148px)); top:438px; width:164px; rotate:3deg; }
+  .fl-mesa .a-mesa { box-shadow:var(--sh); }
   @media (max-width:640px) { .fl-tk { left:max(calc(50% - 301px), -16px); } }
   @media (max-width:940px) {
     .hero .wrap { grid-template-columns:1fr; }
@@ -364,7 +375,7 @@
   .bx-a h3, .bx-b h3 { font-size:clamp(24px,2.6vw,30px); }
   .bx-vis { margin-top:auto; padding-top:24px; }
   .tk-pair { position:relative; height:150px; }
-  .tk-pair .a-tk { position:absolute; width:48.5%; font-size:13.5px; }
+  .tk-pair .a-tk { position:absolute; width:49%; font-size:12.5px; }
   .tk-pair .a-tk:first-child { left:0; top:30px; rotate:-2deg; }
   .tk-pair .a-tk:last-child { right:0; top:8px; rotate:1.5deg; }
   .off { display:grid; gap:8px; }
@@ -640,37 +651,27 @@
         <!--phone-->
         <div class="phone app" aria-hidden="true">
           <div class="a-screen">
-            <div class="a-top"><svg><use href="#i-applogo"/></svg><span class="a-t">Bar do Cacau</span><span class="a-on">Online</span></div>
-            <div class="a-awn"></div>
+            <div class="a-top"><span class="a-chip"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></span><svg aria-hidden="true"><use href="#i-applogo"/></svg><div class="a-id"><b>Bar do Cacau</b><small>Online</small></div><span class="a-av">A</span></div>
             <div class="a-body">
-              <div class="a-t a-h"><span class="a-back"><svg class="ic"><use href="#i-back"/></svg></span>Mesa 8</div>
-              <div class="a-paper">
-                <div class="a-ph"><span class="a-t">Comanda</span><span class="a-m">Nº 8</span></div>
-                <div class="a-it"><span>Hambúrguer <em>•cozinha</em><small>R$ 32,00 un.</small></span><span class="a-step"><i>−</i>2<i>+</i></span><span class="a-m">64,00</span></div>
-                <div class="a-it"><span>Coca-Cola lata<small>R$ 10,00 un.</small></span><span class="a-step"><i>−</i>1<i>+</i></span><span class="a-m">10,00</span></div>
-                <div class="a-tot"><span class="a-t">Total</span><span class="a-t">R$ 74,00</span></div>
+              <div class="a-oh"><span class="a-chip"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></span><div><div class="a-t a-h">Mesa 8</div><small>agora · 2 pessoas · 3 itens</small></div></div>
+              <div class="a-list">
+                <div class="a-it"><span class="a-q a-m">2×</span><div><b>Hambúrguer <i class="a-k">cozinha</i></b><small>R$ 32,00 un.</small></div><div class="a-r"><span class="a-m">R$ 64,00</span><span class="a-step"><i>−</i>2<i>+</i></span></div></div>
+                <div class="a-it"><span class="a-q a-m">1×</span><div><b>Coca-Cola lata</b><small>R$ 10,00 un.</small></div><div class="a-r"><span class="a-m">R$ 10,00</span><span class="a-step"><i>−</i>1<i>+</i></span></div></div>
               </div>
-              <div class="a-btn"><svg class="ic"><use href="#i-plus"/></svg>Adicionar item</div>
-              <div class="a-btn red">Fechar conta</div>
+              <div class="a-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Adicionar item</div>
             </div>
-            <ul class="a-tabs">
-              <li class="on"><span><svg class="ic"><use href="#i-bill"/></svg></span>Mesas</li>
-              <li><span><svg class="ic"><use href="#i-pan"/></svg></span>Cozinha</li>
-              <li><span><svg class="ic"><use href="#i-cash"/></svg></span>Caixa</li>
-              <li><span><svg class="ic"><use href="#i-wrench"/></svg></span>Ajustes</li>
+            <div class="a-pay"><div><small>Total</small><b>R$ 74,00</b></div><span class="a-btn">Fechar conta</span></div>
+            <ul class="a-nav a-tabs" aria-hidden="true">
+              <li class="on"><svg class="ic"><use href="#i-bill"/></svg>Mesas</li>
+              <li><svg class="ic"><use href="#i-pan"/></svg>Cozinha</li>
+              <li><svg class="ic"><use href="#i-cash"/></svg>Caixa</li>
+              <li><svg class="ic"><use href="#i-wrench"/></svg>Ajustes</li>
             </ul>
           </div>
         </div>
         <!--/phone-->
-        <div class="fl fl-tk app" aria-hidden="true">
-          <div class="a-tk">
-            <div class="a-tk-h"><span class="a-t">Mesa 8</span><span class="a-m">agora</span></div>
-            <div class="a-ki"><span class="a-m">2×</span><span>Hambúrguer<span class="a-new">NOVO</span></span></div>
-          </div>
-        </div>
-        <div class="fl fl-mesa app a-mesa" aria-hidden="true">
-          <div><span class="a-t">Mesa 3</span><small>Ana · 21 min · 4 pes.</small><span class="a-m">R$ 49,00</span></div>
-        </div>
+        <div class="fl fl-tk app" aria-hidden="true"><div class="a-tk"><div class="a-tk-h"><b>Mesa 8</b><span class="a-st">agora</span></div><div class="a-ki"><span class="a-q a-m">2×</span><span>Hambúrguer<span class="a-new">NOVO</span></span></div></div></div>
+        <div class="fl fl-mesa app" aria-hidden="true"><div class="a-mesa"><div class="a-mesa-top"><b>Mesa 3</b><span class="a-st">aberta</span></div><span class="a-m">R$ 49,00</span><small>21 min · 4 pessoas</small></div></div>
       </div>
     </div>
   </div>
@@ -776,16 +777,7 @@
         <h3>O pedido chega na cozinha na hora.</h3>
         <p>Sem gritar e sem levar papel. A cozinha vê o que preparar e há quanto tempo o cliente espera.</p>
         <div class="bx-vis" aria-hidden="true">
-          <div class="tk-pair app">
-            <div class="a-tk warn">
-              <div class="a-tk-h"><span class="a-t">Mesa 3</span><span class="a-m">18 min</span></div>
-              <div class="a-ki"><span class="a-m">1×</span><span>Batata frita<small>✎ sem sal</small></span><span class="a-mark">MARCAR</span></div>
-            </div>
-            <div class="a-tk">
-              <div class="a-tk-h"><span class="a-t">Mesa 8</span><span class="a-m">agora</span></div>
-              <div class="a-ki"><span class="a-m">2×</span><span>Hambúrguer<span class="a-new">NOVO</span></span><span class="a-mark">MARCAR</span></div>
-            </div>
-          </div>
+          <div class="tk-pair app"><div class="a-tk warn"><div class="a-tk-h"><b>Mesa 3</b><span class="a-st warn">18 min</span></div><div class="a-ki"><span class="a-q a-m">1×</span><span>Batata frita<small>✎ sem sal</small></span><span class="a-mark">Marcar pronto</span></div></div><div class="a-tk"><div class="a-tk-h"><b>Mesa 8</b><span class="a-st">agora</span></div><div class="a-ki"><span class="a-q a-m">2×</span><span>Hambúrguer<span class="a-new">NOVO</span></span><span class="a-mark">Marcar pronto</span></div></div></div>
         </div>
       </article>
       <article class="bx bx-b rv" style="--d:1">
@@ -811,10 +803,7 @@
         <h3>Controle de mesas</h3>
         <p>Veja as mesas abertas e quanto cada uma já consumiu.</p>
         <div class="bx-vis" aria-hidden="true">
-          <div class="mesas2">
-            <div class="app a-mesa"><div><span class="a-t">Mesa 3</span><small>21 min · 4 pes.</small><span class="a-m">R$ 49,00</span></div></div>
-            <div class="app a-mesa"><div><span class="a-t">Mesa 8</span><small>6 min · 2 pes.</small><span class="a-m">R$ 74,00</span></div></div>
-          </div>
+          <div class="mesas2"><div class="app a-mesa"><div class="a-mesa-top"><b>Mesa 3</b><span class="a-st">aberta</span></div><span class="a-m">R$ 49,00</span><small>21 min · 4 pes.</small></div><div class="app a-mesa"><div class="a-mesa-top"><b>Mesa 8</b><span class="a-st">aberta</span></div><span class="a-m">R$ 74,00</span><small>6 min · 2 pes.</small></div></div>
         </div>
       </article>
       <article class="bx bx-c rv" style="--d:2">
@@ -860,67 +849,58 @@
       <p class="ddesc" id="ddesc" aria-hidden="true">O garçom abre a Mesa 8.</p>
       <div class="phone app dphone">
         <div class="a-screen">
-          <div class="a-top"><svg aria-hidden="true"><use href="#i-applogo"/></svg><span class="a-t">Bar do Cacau</span><span class="a-on">Online</span></div>
-          <div class="a-awn"></div>
+          <div class="a-top"><span class="a-chip"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></span><svg aria-hidden="true"><use href="#i-applogo"/></svg><div class="a-id"><b>Bar do Cacau</b><small>Online</small></div><span class="a-av">A</span></div>
           <div class="dpanels">
             <div class="dpanel on" role="tabpanel" id="dp0" aria-labelledby="dt0">
               <div class="a-body">
-                <div class="a-t a-h">Mesas abertas</div>
-                <div class="a-mesa"><div><span class="a-t">Mesa 3</span><small>Ana · 21 min · 4 pes.</small><span class="a-m">R$ 49,00</span></div></div>
-                <div class="a-mesa new"><div><span class="a-t">Mesa 8</span><small>Você · agora · 2 pes.</small><span class="a-m">R$ 0,00</span></div></div>
-                <div class="a-btn red" style="margin-top:auto"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Abrir mesa</div>
+                <div class="a-kick">2 mesas abertas</div>
+                <div class="a-t a-h">Mesas</div>
+                <div class="a-metrics"><div class="a-metric"><small>Em aberto</small><b>R$ 49,00</b></div><div class="a-metric"><small>Na cozinha</small><b>1</b></div><div class="a-metric"><small>No caixa</small><b>0</b></div></div>
+                <div class="a-grid2"><div class="a-mesa"><div class="a-mesa-top"><b>Mesa 3</b><span class="a-st">aberta</span></div><span class="a-m">R$ 49,00</span><small>21 min · 4 pes.</small></div><div class="a-mesa new"><div class="a-mesa-top"><b>Mesa 8</b><span class="a-st">aberta</span></div><span class="a-m">R$ 0,00</span><small>agora · 2 pes.</small></div></div>
+                <div class="a-pill"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Abrir mesa</div>
               </div>
             </div>
             <div class="dpanel" role="tabpanel" id="dp1" aria-labelledby="dt1">
               <div class="a-body">
-                <div class="a-t a-h"><span class="a-back"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></span>Mesa 8</div>
-                <div class="a-paper">
-                  <div class="a-ph"><span class="a-t">Comanda</span><span class="a-m">Nº 8</span></div>
-                  <div class="a-it"><span>Hambúrguer <em>•cozinha</em><small>R$ 32,00 un.</small></span><span class="a-step"><i>−</i>2<i>+</i></span><span class="a-m">64,00</span></div>
-                  <div class="a-it"><span>Coca-Cola lata<small>R$ 10,00 un.</small></span><span class="a-step"><i>−</i>1<i>+</i></span><span class="a-m">10,00</span></div>
-                  <div class="a-tot"><span class="a-t">Total</span><span class="a-t">R$ 74,00</span></div>
-                </div>
-                <div class="a-btn"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Adicionar item</div>
-                <div class="a-btn red">Fechar conta</div>
+              <div class="a-oh"><span class="a-chip"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></span><div><div class="a-t a-h">Mesa 8</div><small>agora · 2 pessoas · 3 itens</small></div></div>
+              <div class="a-list">
+                <div class="a-it"><span class="a-q a-m">2×</span><div><b>Hambúrguer <i class="a-k">cozinha</i></b><small>R$ 32,00 un.</small></div><div class="a-r"><span class="a-m">R$ 64,00</span><span class="a-step"><i>−</i>2<i>+</i></span></div></div>
+                <div class="a-it"><span class="a-q a-m">1×</span><div><b>Coca-Cola lata</b><small>R$ 10,00 un.</small></div><div class="a-r"><span class="a-m">R$ 10,00</span><span class="a-step"><i>−</i>1<i>+</i></span></div></div>
               </div>
+              <div class="a-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Adicionar item</div>
+            </div>
+            <div class="a-pay"><div><small>Total</small><b>R$ 74,00</b></div><span class="a-btn">Fechar conta</span></div>
             </div>
             <div class="dpanel" role="tabpanel" id="dp2" aria-labelledby="dt2">
               <div class="a-body">
+                <div class="a-kick">Pedidos em preparo</div>
                 <div class="a-t a-h">Cozinha</div>
-                <p class="a-sub">2 item(ns) a preparar · 1 novo(s)</p>
-                <div class="a-tk">
-                  <div class="a-tk-h"><span class="a-t">Mesa 8</span><span class="a-m">agora</span></div>
-                  <div class="a-ki"><span class="a-m">2×</span><span>Hambúrguer<span class="a-new">NOVO</span></span><span class="a-mark">MARCAR</span></div>
-                </div>
-                <div class="a-tk warn">
-                  <div class="a-tk-h"><span class="a-t">Mesa 3</span><span class="a-m">18 min</span></div>
-                  <div class="a-ki"><span class="a-m">1×</span><span>Batata frita<small>✎ sem sal</small></span><span class="a-mark">MARCAR</span></div>
-                </div>
+                <div class="a-metrics"><div class="a-metric"><small>A preparar</small><b>3</b></div><div class="a-metric hot"><small>Novos</small><b>2</b></div><div class="a-metric"><small>Mesas</small><b>2</b></div></div>
+                <div class="a-tk"><div class="a-tk-h"><b>Mesa 8</b><span class="a-st">agora</span></div><div class="a-ki"><span class="a-q a-m">2×</span><span>Hambúrguer<span class="a-new">NOVO</span></span><span class="a-mark">Marcar pronto</span></div></div>
+                <div class="a-tk warn"><div class="a-tk-h"><b>Mesa 3</b><span class="a-st warn">18 min</span></div><div class="a-ki"><span class="a-q a-m">1×</span><span>Batata frita<small>✎ sem sal</small></span><span class="a-mark">Marcar pronto</span></div></div>
               </div>
             </div>
             <div class="dpanel" role="tabpanel" id="dp3" aria-labelledby="dt3">
               <div class="a-sheet">
                 <span class="a-t">Fechar conta · Mesa 8</span>
-                <div class="a-ln"><span>2× Hambúrguer</span><span class="a-m">R$ 64,00</span></div>
-                <div class="a-ln"><span>1× Coca-Cola lata</span><span class="a-m">R$ 10,00</span></div>
-                <div class="a-ln big"><span>Total</span><span class="a-t">R$ 74,00</span></div>
-                <div class="a-ln"><span>Por pessoa (2)</span><span class="a-m">R$ 37,00</span></div>
+                <div class="a-hero"><small>Total</small><b>R$ 74,00</b><span>R$ 37,00 por pessoa (2)</span></div>
+                <div class="a-rows"><div class="a-ln"><span>2× Hambúrguer</span><span class="a-m">R$ 64,00</span></div><div class="a-ln"><span>1× Coca-Cola lata</span><span class="a-m">R$ 10,00</span></div></div>
                 <div class="a-lbl">Como vai pagar</div>
-                <div class="a-seg"><span>Dinheiro</span><span>Cartão</span><span class="on">Pix</span></div>
-                <div class="a-btn red" style="margin-top:auto">Confirmar pagamento</div>
+                <div class="a-pm"><span><svg class="ic" aria-hidden="true"><use href="#i-cash"/></svg>Dinheiro</span><span><svg class="ic" aria-hidden="true"><use href="#i-bill"/></svg>Cartão</span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-pix"/></svg>Pix</span></div>
+                <div class="a-btn">Finalizar conta</div>
               </div>
             </div>
           </div>
-          <ul class="a-tabs" aria-hidden="true">
-            <li class="on"><span><svg class="ic"><use href="#i-bill"/></svg></span>Mesas</li>
-            <li><span><svg class="ic"><use href="#i-pan"/></svg></span>Cozinha</li>
-            <li><span><svg class="ic"><use href="#i-cash"/></svg></span>Caixa</li>
-            <li><span><svg class="ic"><use href="#i-wrench"/></svg></span>Ajustes</li>
-          </ul>
+          <ul class="a-nav a-tabs" aria-hidden="true">
+            <li class="on"><svg class="ic"><use href="#i-bill"/></svg>Mesas</li>
+            <li><svg class="ic"><use href="#i-pan"/></svg>Cozinha</li>
+            <li><svg class="ic"><use href="#i-cash"/></svg>Caixa</li>
+            <li><svg class="ic"><use href="#i-wrench"/></svg>Ajustes</li>
+            </ul>
         </div>
       </div>
     </div>
-    <p class="note">Telas de exemplo, com dados fictícios.</p>
+    <p class="note">Telas do aplicativo, com dados de exemplo.</p>
 
     <div class="video-row rv">
       <div>
